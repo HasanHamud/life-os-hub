@@ -10,6 +10,7 @@ import type { Task, TaskStatus, Priority, RecurrenceFreq } from "@/core/types";
 import { format } from "date-fns";
 import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const STATUSES: TaskStatus[] = ["backlog", "todo", "in_progress", "blocked", "done"];
 const PRIORITIES: Priority[] = ["low", "med", "high", "urgent"];
@@ -56,7 +57,11 @@ export function TaskDialog({
   }, [open, existing, defaultStatus]);
 
   const submit = async () => {
-    if (!title.trim()) return;
+    if (!title.trim()) {
+      toast.error("Title is required");
+      return;
+    }
+    const isNew = !existing;
     await upsertTask({
       id: existing?.id,
       title: title.trim(),
@@ -74,12 +79,14 @@ export function TaskDialog({
         intervalDays: recFreq === "custom" ? Number(recInterval) || 2 : undefined,
       },
     });
+    toast.success(isNew ? "Task created" : "Task updated", { description: title.trim() });
     onOpenChange(false);
   };
 
   const remove = async () => {
     if (existing) {
       await deleteTask(existing.id);
+      toast.success("Task deleted");
       onOpenChange(false);
     }
   };
