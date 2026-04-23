@@ -18,9 +18,17 @@ import { Route as PomodoroRouteImport } from './routes/pomodoro'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as GoalsRouteImport } from './routes/goals'
 import { Route as FocusRouteImport } from './routes/focus'
+import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as FinanceIndexRouteImport } from './routes/finance.index'
+import { Route as FinanceTransactionsRouteImport } from './routes/finance.transactions'
+import { Route as FinanceSavingsRouteImport } from './routes/finance.savings'
+import { Route as FinanceCategoriesRouteImport } from './routes/finance.categories'
+import { Route as FinanceBudgetsRouteImport } from './routes/finance.budgets'
+import { Route as FinanceAnalyticsRouteImport } from './routes/finance.analytics'
+import { Route as FinanceAccountsRouteImport } from './routes/finance.accounts'
 
 const TimeRoute = TimeRouteImport.update({
   id: '/time',
@@ -67,6 +75,11 @@ const FocusRoute = FocusRouteImport.update({
   path: '/focus',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinanceRoute = FinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CalendarRoute = CalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
@@ -82,11 +95,47 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinanceIndexRoute = FinanceIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => FinanceRoute,
+} as any)
+const FinanceTransactionsRoute = FinanceTransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => FinanceRoute,
+} as any)
+const FinanceSavingsRoute = FinanceSavingsRouteImport.update({
+  id: '/savings',
+  path: '/savings',
+  getParentRoute: () => FinanceRoute,
+} as any)
+const FinanceCategoriesRoute = FinanceCategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
+  getParentRoute: () => FinanceRoute,
+} as any)
+const FinanceBudgetsRoute = FinanceBudgetsRouteImport.update({
+  id: '/budgets',
+  path: '/budgets',
+  getParentRoute: () => FinanceRoute,
+} as any)
+const FinanceAnalyticsRoute = FinanceAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => FinanceRoute,
+} as any)
+const FinanceAccountsRoute = FinanceAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => FinanceRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
   '/calendar': typeof CalendarRoute
+  '/finance': typeof FinanceRouteWithChildren
   '/focus': typeof FocusRoute
   '/goals': typeof GoalsRoute
   '/journal': typeof JournalRoute
@@ -96,6 +145,13 @@ export interface FileRoutesByFullPath {
   '/tags': typeof TagsRoute
   '/tasks': typeof TasksRoute
   '/time': typeof TimeRoute
+  '/finance/accounts': typeof FinanceAccountsRoute
+  '/finance/analytics': typeof FinanceAnalyticsRoute
+  '/finance/budgets': typeof FinanceBudgetsRoute
+  '/finance/categories': typeof FinanceCategoriesRoute
+  '/finance/savings': typeof FinanceSavingsRoute
+  '/finance/transactions': typeof FinanceTransactionsRoute
+  '/finance/': typeof FinanceIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -110,12 +166,20 @@ export interface FileRoutesByTo {
   '/tags': typeof TagsRoute
   '/tasks': typeof TasksRoute
   '/time': typeof TimeRoute
+  '/finance/accounts': typeof FinanceAccountsRoute
+  '/finance/analytics': typeof FinanceAnalyticsRoute
+  '/finance/budgets': typeof FinanceBudgetsRoute
+  '/finance/categories': typeof FinanceCategoriesRoute
+  '/finance/savings': typeof FinanceSavingsRoute
+  '/finance/transactions': typeof FinanceTransactionsRoute
+  '/finance': typeof FinanceIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
   '/calendar': typeof CalendarRoute
+  '/finance': typeof FinanceRouteWithChildren
   '/focus': typeof FocusRoute
   '/goals': typeof GoalsRoute
   '/journal': typeof JournalRoute
@@ -125,6 +189,13 @@ export interface FileRoutesById {
   '/tags': typeof TagsRoute
   '/tasks': typeof TasksRoute
   '/time': typeof TimeRoute
+  '/finance/accounts': typeof FinanceAccountsRoute
+  '/finance/analytics': typeof FinanceAnalyticsRoute
+  '/finance/budgets': typeof FinanceBudgetsRoute
+  '/finance/categories': typeof FinanceCategoriesRoute
+  '/finance/savings': typeof FinanceSavingsRoute
+  '/finance/transactions': typeof FinanceTransactionsRoute
+  '/finance/': typeof FinanceIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -132,6 +203,7 @@ export interface FileRouteTypes {
     | '/'
     | '/analytics'
     | '/calendar'
+    | '/finance'
     | '/focus'
     | '/goals'
     | '/journal'
@@ -141,6 +213,13 @@ export interface FileRouteTypes {
     | '/tags'
     | '/tasks'
     | '/time'
+    | '/finance/accounts'
+    | '/finance/analytics'
+    | '/finance/budgets'
+    | '/finance/categories'
+    | '/finance/savings'
+    | '/finance/transactions'
+    | '/finance/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -155,11 +234,19 @@ export interface FileRouteTypes {
     | '/tags'
     | '/tasks'
     | '/time'
+    | '/finance/accounts'
+    | '/finance/analytics'
+    | '/finance/budgets'
+    | '/finance/categories'
+    | '/finance/savings'
+    | '/finance/transactions'
+    | '/finance'
   id:
     | '__root__'
     | '/'
     | '/analytics'
     | '/calendar'
+    | '/finance'
     | '/focus'
     | '/goals'
     | '/journal'
@@ -169,12 +256,20 @@ export interface FileRouteTypes {
     | '/tags'
     | '/tasks'
     | '/time'
+    | '/finance/accounts'
+    | '/finance/analytics'
+    | '/finance/budgets'
+    | '/finance/categories'
+    | '/finance/savings'
+    | '/finance/transactions'
+    | '/finance/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalyticsRoute: typeof AnalyticsRoute
   CalendarRoute: typeof CalendarRoute
+  FinanceRoute: typeof FinanceRouteWithChildren
   FocusRoute: typeof FocusRoute
   GoalsRoute: typeof GoalsRoute
   JournalRoute: typeof JournalRoute
@@ -251,6 +346,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FocusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/finance': {
+      id: '/finance'
+      path: '/finance'
+      fullPath: '/finance'
+      preLoaderRoute: typeof FinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/calendar': {
       id: '/calendar'
       path: '/calendar'
@@ -272,13 +374,86 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/finance/': {
+      id: '/finance/'
+      path: '/'
+      fullPath: '/finance/'
+      preLoaderRoute: typeof FinanceIndexRouteImport
+      parentRoute: typeof FinanceRoute
+    }
+    '/finance/transactions': {
+      id: '/finance/transactions'
+      path: '/transactions'
+      fullPath: '/finance/transactions'
+      preLoaderRoute: typeof FinanceTransactionsRouteImport
+      parentRoute: typeof FinanceRoute
+    }
+    '/finance/savings': {
+      id: '/finance/savings'
+      path: '/savings'
+      fullPath: '/finance/savings'
+      preLoaderRoute: typeof FinanceSavingsRouteImport
+      parentRoute: typeof FinanceRoute
+    }
+    '/finance/categories': {
+      id: '/finance/categories'
+      path: '/categories'
+      fullPath: '/finance/categories'
+      preLoaderRoute: typeof FinanceCategoriesRouteImport
+      parentRoute: typeof FinanceRoute
+    }
+    '/finance/budgets': {
+      id: '/finance/budgets'
+      path: '/budgets'
+      fullPath: '/finance/budgets'
+      preLoaderRoute: typeof FinanceBudgetsRouteImport
+      parentRoute: typeof FinanceRoute
+    }
+    '/finance/analytics': {
+      id: '/finance/analytics'
+      path: '/analytics'
+      fullPath: '/finance/analytics'
+      preLoaderRoute: typeof FinanceAnalyticsRouteImport
+      parentRoute: typeof FinanceRoute
+    }
+    '/finance/accounts': {
+      id: '/finance/accounts'
+      path: '/accounts'
+      fullPath: '/finance/accounts'
+      preLoaderRoute: typeof FinanceAccountsRouteImport
+      parentRoute: typeof FinanceRoute
+    }
   }
 }
+
+interface FinanceRouteChildren {
+  FinanceAccountsRoute: typeof FinanceAccountsRoute
+  FinanceAnalyticsRoute: typeof FinanceAnalyticsRoute
+  FinanceBudgetsRoute: typeof FinanceBudgetsRoute
+  FinanceCategoriesRoute: typeof FinanceCategoriesRoute
+  FinanceSavingsRoute: typeof FinanceSavingsRoute
+  FinanceTransactionsRoute: typeof FinanceTransactionsRoute
+  FinanceIndexRoute: typeof FinanceIndexRoute
+}
+
+const FinanceRouteChildren: FinanceRouteChildren = {
+  FinanceAccountsRoute: FinanceAccountsRoute,
+  FinanceAnalyticsRoute: FinanceAnalyticsRoute,
+  FinanceBudgetsRoute: FinanceBudgetsRoute,
+  FinanceCategoriesRoute: FinanceCategoriesRoute,
+  FinanceSavingsRoute: FinanceSavingsRoute,
+  FinanceTransactionsRoute: FinanceTransactionsRoute,
+  FinanceIndexRoute: FinanceIndexRoute,
+}
+
+const FinanceRouteWithChildren =
+  FinanceRoute._addFileChildren(FinanceRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyticsRoute: AnalyticsRoute,
   CalendarRoute: CalendarRoute,
+  FinanceRoute: FinanceRouteWithChildren,
   FocusRoute: FocusRoute,
   GoalsRoute: GoalsRoute,
   JournalRoute: JournalRoute,

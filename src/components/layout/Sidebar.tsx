@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, ListChecks, Calendar, Clock, Target, FolderKanban,
   Timer, BarChart3, Tag as TagIcon, BookOpen, Settings as SettingsIcon, Focus,
+  Wallet, ArrowLeftRight, Layers, PiggyBank, LineChart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +18,16 @@ const NAV = [
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/tags", label: "Tags", icon: TagIcon },
   { to: "/journal", label: "Journal", icon: BookOpen },
-  { to: "/settings", label: "Settings", icon: SettingsIcon },
+] as const;
+
+const FINANCE_NAV = [
+  { to: "/finance", label: "Overview", icon: Wallet, exact: true },
+  { to: "/finance/transactions", label: "Transactions", icon: ArrowLeftRight },
+  { to: "/finance/accounts", label: "Accounts", icon: Wallet },
+  { to: "/finance/categories", label: "Categories", icon: Layers },
+  { to: "/finance/budgets", label: "Budgets", icon: Target },
+  { to: "/finance/savings", label: "Savings", icon: PiggyBank },
+  { to: "/finance/analytics", label: "Analytics", icon: LineChart },
 ] as const;
 
 export function Sidebar() {
@@ -55,6 +65,46 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        <div className="px-3 pt-5 pb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
+          Finance
+        </div>
+        {FINANCE_NAV.map(({ to, label, icon: Icon, exact }) => {
+          const active = exact ? path === to : path.startsWith(to);
+          return (
+            <Link
+              key={to}
+              to={to}
+              className={cn(
+                "group flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                active
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  : "text-sidebar-foreground/80"
+              )}
+            >
+              <Icon className={cn("h-4 w-4", active ? "text-warning" : "text-muted-foreground group-hover:text-foreground")} />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
+
+        <div className="px-3 pt-5 pb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
+          Settings
+        </div>
+        <Link
+          to="/settings"
+          className={cn(
+            "group flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+            "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            path.startsWith("/settings")
+              ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+              : "text-sidebar-foreground/80"
+          )}
+        >
+          <SettingsIcon className={cn("h-4 w-4", path.startsWith("/settings") ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+          <span>Settings</span>
+        </Link>
       </nav>
 
       <div className="px-4 py-3 border-t text-[11px] text-muted-foreground">
