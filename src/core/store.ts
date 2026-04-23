@@ -133,7 +133,7 @@ export const useStore = create<State>((set, get) => ({
       completedAt:
         patch.status === "done"
           ? existing?.completedAt ?? now
-          : patch.status && patch.status !== "done"
+          : patch.status
           ? undefined
           : existing?.completedAt,
       createdAt: existing?.createdAt ?? now,
