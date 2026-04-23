@@ -43,7 +43,7 @@ function TimePage() {
     <PageContainer className="max-w-none">
       <PageHeader
         title="Time Blocks"
-        description="Click and drag on the grid to create a block. Click a block to edit. Workday: ${0}–${0}".replace("${0}", `${settings.workdayStart}:00`).replace("${0}", `${settings.workdayEnd}:00`)}
+        description={`Click and drag on the grid to create a block. Click a block to edit. Workday: ${settings.workdayStart}:00–${settings.workdayEnd}:00`}
         actions={
           <div className="flex items-center gap-2">
             <Button size="sm" variant="ghost" onClick={goPrev}><ChevronLeft className="h-4 w-4" /></Button>
