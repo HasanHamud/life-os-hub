@@ -11,6 +11,15 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TimeRouteImport } from './routes/time'
 import { Route as TasksRouteImport } from './routes/tasks'
+import { Route as TagsRouteImport } from './routes/tags'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as PomodoroRouteImport } from './routes/pomodoro'
+import { Route as JournalRouteImport } from './routes/journal'
+import { Route as GoalsRouteImport } from './routes/goals'
+import { Route as FocusRouteImport } from './routes/focus'
+import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as IndexRouteImport } from './routes/index'
 
 const TimeRoute = TimeRouteImport.update({
@@ -23,6 +32,51 @@ const TasksRoute = TasksRouteImport.update({
   path: '/tasks',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TagsRoute = TagsRouteImport.update({
+  id: '/tags',
+  path: '/tags',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsRoute = ProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PomodoroRoute = PomodoroRouteImport.update({
+  id: '/pomodoro',
+  path: '/pomodoro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JournalRoute = JournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoalsRoute = GoalsRouteImport.update({
+  id: '/goals',
+  path: '/goals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FocusRoute = FocusRouteImport.update({
+  id: '/focus',
+  path: '/focus',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CalendarRoute = CalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -31,30 +85,103 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
+  '/calendar': typeof CalendarRoute
+  '/focus': typeof FocusRoute
+  '/goals': typeof GoalsRoute
+  '/journal': typeof JournalRoute
+  '/pomodoro': typeof PomodoroRoute
+  '/projects': typeof ProjectsRoute
+  '/settings': typeof SettingsRoute
+  '/tags': typeof TagsRoute
   '/tasks': typeof TasksRoute
   '/time': typeof TimeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
+  '/calendar': typeof CalendarRoute
+  '/focus': typeof FocusRoute
+  '/goals': typeof GoalsRoute
+  '/journal': typeof JournalRoute
+  '/pomodoro': typeof PomodoroRoute
+  '/projects': typeof ProjectsRoute
+  '/settings': typeof SettingsRoute
+  '/tags': typeof TagsRoute
   '/tasks': typeof TasksRoute
   '/time': typeof TimeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
+  '/calendar': typeof CalendarRoute
+  '/focus': typeof FocusRoute
+  '/goals': typeof GoalsRoute
+  '/journal': typeof JournalRoute
+  '/pomodoro': typeof PomodoroRoute
+  '/projects': typeof ProjectsRoute
+  '/settings': typeof SettingsRoute
+  '/tags': typeof TagsRoute
   '/tasks': typeof TasksRoute
   '/time': typeof TimeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/tasks' | '/time'
+  fullPaths:
+    | '/'
+    | '/analytics'
+    | '/calendar'
+    | '/focus'
+    | '/goals'
+    | '/journal'
+    | '/pomodoro'
+    | '/projects'
+    | '/settings'
+    | '/tags'
+    | '/tasks'
+    | '/time'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/tasks' | '/time'
-  id: '__root__' | '/' | '/tasks' | '/time'
+  to:
+    | '/'
+    | '/analytics'
+    | '/calendar'
+    | '/focus'
+    | '/goals'
+    | '/journal'
+    | '/pomodoro'
+    | '/projects'
+    | '/settings'
+    | '/tags'
+    | '/tasks'
+    | '/time'
+  id:
+    | '__root__'
+    | '/'
+    | '/analytics'
+    | '/calendar'
+    | '/focus'
+    | '/goals'
+    | '/journal'
+    | '/pomodoro'
+    | '/projects'
+    | '/settings'
+    | '/tags'
+    | '/tasks'
+    | '/time'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnalyticsRoute: typeof AnalyticsRoute
+  CalendarRoute: typeof CalendarRoute
+  FocusRoute: typeof FocusRoute
+  GoalsRoute: typeof GoalsRoute
+  JournalRoute: typeof JournalRoute
+  PomodoroRoute: typeof PomodoroRoute
+  ProjectsRoute: typeof ProjectsRoute
+  SettingsRoute: typeof SettingsRoute
+  TagsRoute: typeof TagsRoute
   TasksRoute: typeof TasksRoute
   TimeRoute: typeof TimeRoute
 }
@@ -75,6 +202,69 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TasksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tags': {
+      id: '/tags'
+      path: '/tags'
+      fullPath: '/tags'
+      preLoaderRoute: typeof TagsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects': {
+      id: '/projects'
+      path: '/projects'
+      fullPath: '/projects'
+      preLoaderRoute: typeof ProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pomodoro': {
+      id: '/pomodoro'
+      path: '/pomodoro'
+      fullPath: '/pomodoro'
+      preLoaderRoute: typeof PomodoroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/journal': {
+      id: '/journal'
+      path: '/journal'
+      fullPath: '/journal'
+      preLoaderRoute: typeof JournalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/goals': {
+      id: '/goals'
+      path: '/goals'
+      fullPath: '/goals'
+      preLoaderRoute: typeof GoalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/focus': {
+      id: '/focus'
+      path: '/focus'
+      fullPath: '/focus'
+      preLoaderRoute: typeof FocusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/calendar': {
+      id: '/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof CalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -87,6 +277,15 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnalyticsRoute: AnalyticsRoute,
+  CalendarRoute: CalendarRoute,
+  FocusRoute: FocusRoute,
+  GoalsRoute: GoalsRoute,
+  JournalRoute: JournalRoute,
+  PomodoroRoute: PomodoroRoute,
+  ProjectsRoute: ProjectsRoute,
+  SettingsRoute: SettingsRoute,
+  TagsRoute: TagsRoute,
   TasksRoute: TasksRoute,
   TimeRoute: TimeRoute,
 }

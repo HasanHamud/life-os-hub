@@ -119,7 +119,7 @@ function AnalyticsPage() {
                     {tagBreakdown.map((d) => <Cell key={d.name} fill={d.color} />)}
                   </Pie>
                   <Tooltip contentStyle={{ background: "oklch(0.22 0.014 64)", border: "1px solid oklch(0.30 0.022 70)", borderRadius: 8, fontSize: 12 }}
-                    formatter={(v: number) => `${fmt.duration(v)}`} />
+                    formatter={(v: any) => `${fmt.duration(Number(v) || 0)}`} />
                 </PieChart>
               </ResponsiveContainer>}
         </ChartCard>
