@@ -20,7 +20,7 @@ const NAV = [
   { to: "/journal", label: "Journal", icon: BookOpen },
 ] as const;
 
-const FINANCE_NAV = [
+const FINANCE_NAV: { to: string; label: string; icon: any; exact?: boolean }[] = [
   { to: "/finance", label: "Overview", icon: Wallet, exact: true },
   { to: "/finance/transactions", label: "Transactions", icon: ArrowLeftRight },
   { to: "/finance/accounts", label: "Accounts", icon: Wallet },
@@ -28,7 +28,7 @@ const FINANCE_NAV = [
   { to: "/finance/budgets", label: "Budgets", icon: Target },
   { to: "/finance/savings", label: "Savings", icon: PiggyBank },
   { to: "/finance/analytics", label: "Analytics", icon: LineChart },
-] as const;
+];
 
 export function Sidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
