@@ -1,11 +1,15 @@
 import { create } from "zustand";
-import { addDays, format, startOfDay } from "date-fns";
+import { addDays, addMonths, addWeeks, addYears, format, startOfDay, isAfter } from "date-fns";
 import {
   getAll, putOne, delOne, uid, getOne,
 } from "./db";
 import type {
   Task, TimeBlock, Project, Goal, Session, Tag, LogEntry, Settings, TaskStatus, Recurrence,
 } from "./types";
+import type {
+  Account, Transaction, Category, Budget, SavingsGoal, FinanceRecurrence,
+} from "./finance-types";
+import { recomputeAccountBalances } from "./finance-utils";
 
 interface State {
   loaded: boolean;
@@ -17,6 +21,13 @@ interface State {
   tags: Tag[];
   logs: LogEntry[];
   settings: Settings;
+
+  // Finance
+  accounts: Account[];
+  transactions: Transaction[];
+  categories: Category[];
+  budgets: Budget[];
+  savingsGoals: SavingsGoal[];
 
   load: () => Promise<void>;
 
@@ -53,6 +64,25 @@ interface State {
 
   // recurrence: ensure recurring task instances exist for the next N days
   materializeRecurring: () => Promise<void>;
+
+  // ============ FINANCE ============
+  upsertAccount: (a: Partial<Account> & { name?: string }) => Promise<Account>;
+  deleteAccount: (id: string) => Promise<void>;
+
+  upsertTransaction: (t: Partial<Transaction> & { type?: Transaction["type"]; amount?: number; accountId?: string }) => Promise<Transaction>;
+  deleteTransaction: (id: string) => Promise<void>;
+
+  upsertCategory: (c: Partial<Category> & { name?: string; type?: Category["type"] }) => Promise<Category>;
+  deleteCategory: (id: string) => Promise<void>;
+
+  upsertBudget: (b: Partial<Budget> & { categoryId?: string; limitAmount?: number }) => Promise<Budget>;
+  deleteBudget: (id: string) => Promise<void>;
+
+  upsertSavingsGoal: (g: Partial<SavingsGoal> & { title?: string; targetAmount?: number }) => Promise<SavingsGoal>;
+  deleteSavingsGoal: (id: string) => Promise<void>;
+
+  recomputeBalances: () => void;
+  materializeFinanceRecurring: () => Promise<void>;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -77,8 +107,15 @@ export const useStore = create<State>((set, get) => ({
   logs: [],
   settings: DEFAULT_SETTINGS,
 
+  accounts: [],
+  transactions: [],
+  categories: [],
+  budgets: [],
+  savingsGoals: [],
+
   load: async () => {
-    const [tasks, timeBlocks, projects, goals, sessions, tags, logs] = await Promise.all([
+    const [tasks, timeBlocks, projects, goals, sessions, tags, logs,
+      accounts, transactions, categories, budgets, savingsGoals] = await Promise.all([
       getAll<Task>("tasks"),
       getAll<TimeBlock>("timeBlocks"),
       getAll<Project>("projects"),
@@ -86,6 +123,11 @@ export const useStore = create<State>((set, get) => ({
       getAll<Session>("sessions"),
       getAll<Tag>("tags"),
       getAll<LogEntry>("logs"),
+      getAll<Account>("accounts"),
+      getAll<Transaction>("transactions"),
+      getAll<Category>("categories"),
+      getAll<Budget>("budgets"),
+      getAll<SavingsGoal>("savingsGoals"),
     ]);
     let settings = await getOne<Settings>("settings", "global");
     if (!settings) {
@@ -96,20 +138,37 @@ export const useStore = create<State>((set, get) => ({
     // Seed sample data on first run
     if (tasks.length === 0 && projects.length === 0 && tags.length === 0) {
       await seed();
-      const [t2, b2, p2, g2, , tg2] = await Promise.all([
-        getAll<Task>("tasks"),
-        getAll<TimeBlock>("timeBlocks"),
-        getAll<Project>("projects"),
-        getAll<Goal>("goals"),
-        getAll<Session>("sessions"),
-        getAll<Tag>("tags"),
-      ]);
-      set({ tasks: t2, timeBlocks: b2, projects: p2, goals: g2, tags: tg2, sessions, logs, settings, loaded: true });
-    } else {
-      set({ tasks, timeBlocks, projects, goals, sessions, tags, logs, settings, loaded: true });
+    }
+    if (categories.length === 0 && accounts.length === 0) {
+      await seedFinance();
     }
 
+    const [t2, b2, p2, g2, ses2, tg2, lg2,
+      acc2, tx2, cat2, bud2, sg2] = await Promise.all([
+      getAll<Task>("tasks"),
+      getAll<TimeBlock>("timeBlocks"),
+      getAll<Project>("projects"),
+      getAll<Goal>("goals"),
+      getAll<Session>("sessions"),
+      getAll<Tag>("tags"),
+      getAll<LogEntry>("logs"),
+      getAll<Account>("accounts"),
+      getAll<Transaction>("transactions"),
+      getAll<Category>("categories"),
+      getAll<Budget>("budgets"),
+      getAll<SavingsGoal>("savingsGoals"),
+    ]);
+
+    const accWithBalances = recomputeAccountBalances(acc2, tx2);
+
+    set({
+      tasks: t2, timeBlocks: b2, projects: p2, goals: g2, sessions: ses2, tags: tg2, logs: lg2, settings,
+      accounts: accWithBalances, transactions: tx2, categories: cat2, budgets: bud2, savingsGoals: sg2,
+      loaded: true,
+    });
+
     await get().materializeRecurring();
+    await get().materializeFinanceRecurring();
   },
 
   upsertTask: async (patch) => {
@@ -148,7 +207,6 @@ export const useStore = create<State>((set, get) => ({
 
   deleteTask: async (id) => {
     await delOne("tasks", id);
-    // also remove subtasks
     const subs = get().tasks.filter((t) => t.parentTaskId === id);
     for (const s of subs) await delOne("tasks", s.id);
     set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id && t.parentTaskId !== id) }));
@@ -313,7 +371,176 @@ export const useStore = create<State>((set, get) => ({
       }
     }
   },
+
+  // ============ FINANCE ============
+  upsertAccount: async (patch) => {
+    const existing = patch.id ? get().accounts.find((x) => x.id === patch.id) : undefined;
+    const a: Account = {
+      id: existing?.id ?? uid(),
+      name: patch.name ?? existing?.name ?? "Account",
+      type: patch.type ?? existing?.type ?? "cash",
+      initialBalance: patch.initialBalance ?? existing?.initialBalance ?? 0,
+      balance: 0,
+      currency: patch.currency ?? existing?.currency ?? "USD",
+      color: patch.color ?? existing?.color ?? "#d4a574",
+      archived: patch.archived ?? existing?.archived ?? false,
+      createdAt: existing?.createdAt ?? Date.now(),
+    };
+    await putOne("accounts", a);
+    set((s) => {
+      const accounts = existing ? s.accounts.map((x) => (x.id === a.id ? a : x)) : [...s.accounts, a];
+      return { accounts: recomputeAccountBalances(accounts, s.transactions) };
+    });
+    return a;
+  },
+  deleteAccount: async (id) => {
+    await delOne("accounts", id);
+    set((s) => ({ accounts: s.accounts.filter((x) => x.id !== id) }));
+  },
+
+  upsertTransaction: async (patch) => {
+    const existing = patch.id ? get().transactions.find((x) => x.id === patch.id) : undefined;
+    const t: Transaction = {
+      id: existing?.id ?? uid(),
+      type: patch.type ?? existing?.type ?? "expense",
+      amount: Math.abs(patch.amount ?? existing?.amount ?? 0),
+      categoryId: patch.categoryId ?? existing?.categoryId,
+      accountId: patch.accountId ?? existing?.accountId ?? "",
+      toAccountId: patch.toAccountId ?? existing?.toAccountId,
+      date: patch.date ?? existing?.date ?? Date.now(),
+      note: patch.note ?? existing?.note,
+      relatedTaskId: patch.relatedTaskId ?? existing?.relatedTaskId,
+      relatedGoalId: patch.relatedGoalId ?? existing?.relatedGoalId,
+      recurrence: patch.recurrence ?? existing?.recurrence,
+      recurrenceParentId: patch.recurrenceParentId ?? existing?.recurrenceParentId,
+      createdAt: existing?.createdAt ?? Date.now(),
+    };
+    await putOne("transactions", t);
+    set((s) => {
+      const transactions = existing ? s.transactions.map((x) => (x.id === t.id ? t : x)) : [...s.transactions, t];
+      return { transactions, accounts: recomputeAccountBalances(s.accounts, transactions) };
+    });
+    return t;
+  },
+  deleteTransaction: async (id) => {
+    await delOne("transactions", id);
+    set((s) => {
+      const transactions = s.transactions.filter((x) => x.id !== id);
+      return { transactions, accounts: recomputeAccountBalances(s.accounts, transactions) };
+    });
+  },
+
+  upsertCategory: async (patch) => {
+    const existing = patch.id ? get().categories.find((x) => x.id === patch.id) : undefined;
+    const c: Category = {
+      id: existing?.id ?? uid(),
+      name: patch.name ?? existing?.name ?? "Category",
+      type: patch.type ?? existing?.type ?? "expense",
+      parentCategoryId: patch.parentCategoryId ?? existing?.parentCategoryId,
+      color: patch.color ?? existing?.color ?? "#d4a574",
+      icon: patch.icon ?? existing?.icon,
+      createdAt: existing?.createdAt ?? Date.now(),
+    };
+    await putOne("categories", c);
+    set((s) => ({ categories: existing ? s.categories.map((x) => (x.id === c.id ? c : x)) : [...s.categories, c] }));
+    return c;
+  },
+  deleteCategory: async (id) => {
+    await delOne("categories", id);
+    // Cascade: also delete child categories
+    const children = get().categories.filter((c) => c.parentCategoryId === id);
+    for (const child of children) await delOne("categories", child.id);
+    set((s) => ({ categories: s.categories.filter((c) => c.id !== id && c.parentCategoryId !== id) }));
+  },
+
+  upsertBudget: async (patch) => {
+    const existing = patch.id ? get().budgets.find((x) => x.id === patch.id) : undefined;
+    const b: Budget = {
+      id: existing?.id ?? uid(),
+      categoryId: patch.categoryId ?? existing?.categoryId ?? "",
+      limitAmount: patch.limitAmount ?? existing?.limitAmount ?? 0,
+      period: patch.period ?? existing?.period ?? "monthly",
+      startDate: patch.startDate ?? existing?.startDate ?? Date.now(),
+      createdAt: existing?.createdAt ?? Date.now(),
+    };
+    await putOne("budgets", b);
+    set((s) => ({ budgets: existing ? s.budgets.map((x) => (x.id === b.id ? b : x)) : [...s.budgets, b] }));
+    return b;
+  },
+  deleteBudget: async (id) => {
+    await delOne("budgets", id);
+    set((s) => ({ budgets: s.budgets.filter((b) => b.id !== id) }));
+  },
+
+  upsertSavingsGoal: async (patch) => {
+    const existing = patch.id ? get().savingsGoals.find((x) => x.id === patch.id) : undefined;
+    const g: SavingsGoal = {
+      id: existing?.id ?? uid(),
+      title: patch.title ?? existing?.title ?? "Savings Goal",
+      targetAmount: patch.targetAmount ?? existing?.targetAmount ?? 0,
+      currentAmount: patch.currentAmount ?? existing?.currentAmount ?? 0,
+      deadline: patch.deadline ?? existing?.deadline,
+      linkedGoalId: patch.linkedGoalId ?? existing?.linkedGoalId,
+      accountId: patch.accountId ?? existing?.accountId,
+      color: patch.color ?? existing?.color ?? "#90b890",
+      createdAt: existing?.createdAt ?? Date.now(),
+    };
+    await putOne("savingsGoals", g);
+    set((s) => ({ savingsGoals: existing ? s.savingsGoals.map((x) => (x.id === g.id ? g : x)) : [...s.savingsGoals, g] }));
+    return g;
+  },
+  deleteSavingsGoal: async (id) => {
+    await delOne("savingsGoals", id);
+    set((s) => ({ savingsGoals: s.savingsGoals.filter((g) => g.id !== id) }));
+  },
+
+  recomputeBalances: () => {
+    set((s) => ({ accounts: recomputeAccountBalances(s.accounts, s.transactions) }));
+  },
+
+  materializeFinanceRecurring: async () => {
+    const txs = get().transactions;
+    const templates = txs.filter((t) => t.recurrence && t.recurrence.freq !== "none" && !t.recurrenceParentId);
+    if (templates.length === 0) return;
+    const now = Date.now();
+    for (const tpl of templates) {
+      const r = tpl.recurrence as FinanceRecurrence;
+      let next = nextOccurrence(tpl.date, r);
+      // generate occurrences up to today
+      let safety = 240;
+      while (next <= now && safety-- > 0) {
+        if (r.until && next > r.until) break;
+        const exists = txs.some((t) => t.recurrenceParentId === tpl.id && Math.abs(t.date - next) < 60_000);
+        if (!exists) {
+          await get().upsertTransaction({
+            type: tpl.type,
+            amount: tpl.amount,
+            categoryId: tpl.categoryId,
+            accountId: tpl.accountId,
+            toAccountId: tpl.toAccountId,
+            date: next,
+            note: tpl.note,
+            relatedTaskId: tpl.relatedTaskId,
+            relatedGoalId: tpl.relatedGoalId,
+            recurrenceParentId: tpl.id,
+          });
+        }
+        next = nextOccurrence(next, r);
+      }
+    }
+  },
 }));
+
+function nextOccurrence(from: number, r: FinanceRecurrence): number {
+  const d = new Date(from);
+  switch (r.freq) {
+    case "daily": return addDays(d, r.intervalDays ?? 1).getTime();
+    case "weekly": return addWeeks(d, 1).getTime();
+    case "monthly": return addMonths(d, 1).getTime();
+    case "yearly": return addYears(d, 1).getTime();
+    default: return isAfter(d, new Date()) ? d.getTime() : Date.now() + 86400000;
+  }
+}
 
 async function seed() {
   const projId = uid();
@@ -346,8 +573,127 @@ async function seed() {
   ];
   for (const t of samples) await putOne("tasks", t);
 
-  // a couple sample blocks today
   const t1 = today + 9 * 3600000;
   await putOne("timeBlocks", { id: uid(), title: "Deep work: Dashboard", startTime: t1, endTime: t1 + 5400000, type: "deep", isCompleted: false, taskId: samples[0].id, createdAt: now });
   await putOne("timeBlocks", { id: uid(), title: "Email & admin", startTime: t1 + 6 * 3600000, endTime: t1 + 7 * 3600000, type: "shallow", isCompleted: false, createdAt: now });
+}
+
+async function seedFinance() {
+  const now = Date.now();
+
+  // Default accounts
+  const cash = uid(), bank = uid(), savings = uid();
+  await putOne("accounts", { id: cash, name: "Cash", type: "cash", balance: 0, initialBalance: 200, currency: "USD", color: "#d4a574", createdAt: now });
+  await putOne("accounts", { id: bank, name: "Bank", type: "bank", balance: 0, initialBalance: 3500, currency: "USD", color: "#90b8c8", createdAt: now });
+  await putOne("accounts", { id: savings, name: "Savings", type: "savings", balance: 0, initialBalance: 5000, currency: "USD", color: "#90b890", createdAt: now });
+
+  // Default categories — expense parents + children
+  const mkCat = async (name: string, type: "income" | "expense", color: string, icon?: string, parentCategoryId?: string) => {
+    const id = uid();
+    await putOne("categories", { id, name, type, color, icon, parentCategoryId, createdAt: now });
+    return id;
+  };
+
+  // EXPENSE
+  const food = await mkCat("Food", "expense", "#e8a87c", "Utensils");
+  await mkCat("Groceries", "expense", "#e8a87c", "ShoppingBasket", food);
+  await mkCat("Restaurants", "expense", "#e8a87c", "UtensilsCrossed", food);
+  await mkCat("Coffee", "expense", "#c39b7a", "Coffee", food);
+
+  const transport = await mkCat("Transport", "expense", "#90b8c8", "Car");
+  await mkCat("Fuel", "expense", "#90b8c8", "Fuel", transport);
+  await mkCat("Taxi", "expense", "#90b8c8", "Car", transport);
+  await mkCat("Public transport", "expense", "#90b8c8", "Bus", transport);
+
+  const bills = await mkCat("Bills", "expense", "#c8a890", "Receipt");
+  await mkCat("Electricity", "expense", "#c8a890", "Zap", bills);
+  await mkCat("Internet", "expense", "#c8a890", "Wifi", bills);
+  await mkCat("Phone", "expense", "#c8a890", "Phone", bills);
+
+  const lifestyle = await mkCat("Lifestyle", "expense", "#b890c8", "Sparkles");
+  await mkCat("Gym", "expense", "#b890c8", "Dumbbell", lifestyle);
+  await mkCat("Entertainment", "expense", "#b890c8", "Film", lifestyle);
+  await mkCat("Subscriptions", "expense", "#b890c8", "Repeat", lifestyle);
+
+  const shopping = await mkCat("Shopping", "expense", "#d4a574", "ShoppingBag");
+  await mkCat("Clothes", "expense", "#d4a574", "Shirt", shopping);
+  await mkCat("Electronics", "expense", "#d4a574", "Laptop", shopping);
+
+  await mkCat("Health", "expense", "#e87c8a", "Heart");
+  await mkCat("Education", "expense", "#a8c888", "GraduationCap");
+
+  // INCOME
+  const salaryId = await mkCat("Salary", "income", "#90c890", "Briefcase");
+  await mkCat("Freelance", "income", "#90c890", "Code");
+  await mkCat("Business", "income", "#90c890", "Store");
+  await mkCat("Investments", "income", "#90c890", "TrendingUp");
+  await mkCat("Gifts", "income", "#90c890", "Gift");
+
+  // Sample transactions over the last ~25 days
+  const sample = [
+    { d: 1, t: "expense", amt: 4.5, cat: "Coffee", acc: cash, note: "Latte" },
+    { d: 1, t: "expense", amt: 32.1, cat: "Groceries", acc: bank, note: "Weekly shop" },
+    { d: 2, t: "expense", amt: 12, cat: "Public transport", acc: cash, note: "Metro card" },
+    { d: 3, t: "expense", amt: 9.99, cat: "Subscriptions", acc: bank, note: "Streaming" },
+    { d: 4, t: "expense", amt: 45, cat: "Restaurants", acc: bank, note: "Dinner" },
+    { d: 5, t: "income", amt: 3200, cat: "Salary", acc: bank, note: "Monthly salary" },
+    { d: 6, t: "expense", amt: 60, cat: "Electricity", acc: bank },
+    { d: 7, t: "expense", amt: 35, cat: "Internet", acc: bank },
+    { d: 8, t: "expense", amt: 89, cat: "Clothes", acc: bank },
+    { d: 10, t: "expense", amt: 25, cat: "Gym", acc: bank },
+    { d: 12, t: "income", amt: 450, cat: "Freelance", acc: bank, note: "Logo design" },
+    { d: 14, t: "expense", amt: 22, cat: "Fuel", acc: cash },
+    { d: 16, t: "expense", amt: 15.5, cat: "Restaurants", acc: cash },
+    { d: 18, t: "expense", amt: 6, cat: "Coffee", acc: cash },
+    { d: 20, t: "expense", amt: 110, cat: "Electronics", acc: bank, note: "USB-C hub" },
+  ];
+
+  // Need category lookup
+  const allCats = await getAll<Category>("categories");
+  const catByName = (n: string) => allCats.find((c) => c.name === n)?.id;
+
+  for (const s of sample) {
+    const date = now - s.d * 86400000;
+    await putOne("transactions", {
+      id: uid(),
+      type: s.t as any,
+      amount: s.amt,
+      categoryId: catByName(s.cat),
+      accountId: s.acc,
+      date,
+      note: (s as any).note,
+      createdAt: date,
+    });
+  }
+
+  // Recurring salary template
+  await putOne("transactions", {
+    id: uid(),
+    type: "income",
+    amount: 3200,
+    categoryId: salaryId,
+    accountId: bank,
+    date: now,
+    note: "Monthly salary (recurring)",
+    recurrence: { freq: "monthly", dayOfMonth: new Date().getDate() },
+    createdAt: now,
+  });
+
+  // A budget on Food
+  await putOne("budgets", {
+    id: uid(), categoryId: food, limitAmount: 400, period: "monthly", startDate: now, createdAt: now,
+  });
+  await putOne("budgets", {
+    id: uid(), categoryId: lifestyle, limitAmount: 150, period: "monthly", startDate: now, createdAt: now,
+  });
+
+  // Savings goal
+  await putOne("savingsGoals", {
+    id: uid(), title: "Emergency fund", targetAmount: 5000, currentAmount: 1850,
+    deadline: now + 180 * 86400000, accountId: savings, color: "#90b890", createdAt: now,
+  });
+  await putOne("savingsGoals", {
+    id: uid(), title: "New laptop", targetAmount: 2000, currentAmount: 600,
+    deadline: now + 90 * 86400000, color: "#d4a574", createdAt: now,
+  });
 }
