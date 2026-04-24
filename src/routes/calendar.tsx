@@ -3,12 +3,16 @@ import { useMemo, useState } from "react";
 import { useStore } from "@/core/store";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { TaskDialog } from "@/components/tasks/TaskDialog";
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, addMonths, addDays,
   format, isToday, isSameMonth, isSameDay,
 } from "date-fns";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, CalendarOff, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import type { Task } from "@/core/types";
 
 export const Route = createFileRoute("/calendar")({
   head: () => ({
@@ -23,10 +27,11 @@ export const Route = createFileRoute("/calendar")({
 type View = "month" | "week" | "day";
 
 function CalendarPage() {
-  const { tasks, timeBlocks, upsertTask } = useStore();
+  const { tasks, timeBlocks, upsertTask, deleteTask } = useStore();
   const [view, setView] = useState<View>("month");
   const [anchor, setAnchor] = useState(new Date());
   const [dragId, setDragId] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
 
   const range = useMemo(() => {
     if (view === "month") {
@@ -51,14 +56,27 @@ function CalendarPage() {
     const target = t.deadline ? new Date(t.deadline) : new Date();
     target.setFullYear(day.getFullYear(), day.getMonth(), day.getDate());
     await upsertTask({ ...t, deadline: target.getTime() });
+    toast.success(`Scheduled "${t.title}" on ${format(target, "MMM d")}`);
     setDragId(null);
+  };
+
+  const unschedule = async (t: Task) => {
+    const { deadline, ...rest } = t;
+    void deadline;
+    await upsertTask({ ...rest, deadline: undefined });
+    toast.success(`Removed "${t.title}" from calendar`);
+  };
+
+  const removeTask = async (t: Task) => {
+    await deleteTask(t.id);
+    toast.success(`Deleted "${t.title}"`);
   };
 
   return (
     <PageContainer className="max-w-none">
       <PageHeader
         title="Calendar"
-        description="Drag tasks onto days to schedule them. Click any day to see details."
+        description="Drag tasks onto days to schedule them. Click a task pill to edit or remove it."
         actions={
           <div className="flex items-center gap-2">
             <Button size="sm" variant="ghost" onClick={goPrev}><ChevronLeft className="h-4 w-4" /></Button>
@@ -104,10 +122,14 @@ function CalendarPage() {
                       </div>
                       <div className="space-y-0.5">
                         {dayTasks.slice(0, 3).map((t) => (
-                          <div key={t.id} draggable onDragStart={() => setDragId(t.id)}
-                            className="truncate text-[10px] px-1 py-0.5 rounded bg-primary/15 text-primary cursor-grab">
-                            {t.title}
-                          </div>
+                          <TaskPill
+                            key={t.id}
+                            task={t}
+                            onDragStart={() => setDragId(t.id)}
+                            onEdit={() => setEditId(t.id)}
+                            onUnschedule={() => unschedule(t)}
+                            onDelete={() => removeTask(t)}
+                          />
                         ))}
                         {dayBlocks.slice(0, 2).map((b) => (
                           <div key={b.id} className="truncate text-[10px] px-1 py-0.5 rounded bg-info/15 text-info">
@@ -145,10 +167,15 @@ function CalendarPage() {
                         </div>
                       ))}
                       {dayTasks.map((t) => (
-                        <div key={t.id} draggable onDragStart={() => setDragId(t.id)}
-                          className="text-[11px] px-2 py-1 rounded bg-primary/10 text-foreground cursor-grab truncate">
-                          • {t.title}
-                        </div>
+                        <TaskPill
+                          key={t.id}
+                          task={t}
+                          variant="row"
+                          onDragStart={() => setDragId(t.id)}
+                          onEdit={() => setEditId(t.id)}
+                          onUnschedule={() => unschedule(t)}
+                          onDelete={() => removeTask(t)}
+                        />
                       ))}
                     </div>
                   </div>
@@ -176,6 +203,64 @@ function CalendarPage() {
           </div>
         </aside>
       </div>
+
+      <TaskDialog
+        open={!!editId}
+        onOpenChange={(v) => { if (!v) setEditId(null); }}
+        taskId={editId}
+      />
     </PageContainer>
+  );
+}
+
+function TaskPill({
+  task, variant = "chip", onDragStart, onEdit, onUnschedule, onDelete,
+}: {
+  task: Task;
+  variant?: "chip" | "row";
+  onDragStart: () => void;
+  onEdit: () => void;
+  onUnschedule: () => void;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <div
+          draggable
+          onDragStart={onDragStart}
+          className={cn(
+            "truncate cursor-pointer",
+            variant === "chip"
+              ? "text-[10px] px-1 py-0.5 rounded bg-primary/15 text-primary hover:bg-primary/25"
+              : "text-[11px] px-2 py-1 rounded bg-primary/10 text-foreground hover:bg-primary/20",
+          )}
+        >
+          {variant === "row" ? "• " : ""}{task.title}
+        </div>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-1" align="start">
+        <div className="px-2 py-1.5 text-xs font-medium truncate border-b mb-1">{task.title}</div>
+        <button
+          onClick={() => { setOpen(false); onEdit(); }}
+          className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-accent text-left"
+        >
+          <Pencil className="h-3.5 w-3.5" /> Edit task
+        </button>
+        <button
+          onClick={() => { setOpen(false); onUnschedule(); }}
+          className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-accent text-left"
+        >
+          <CalendarOff className="h-3.5 w-3.5" /> Remove from calendar
+        </button>
+        <button
+          onClick={() => { setOpen(false); onDelete(); }}
+          className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-destructive/10 text-destructive text-left"
+        >
+          <Trash2 className="h-3.5 w-3.5" /> Delete task
+        </button>
+      </PopoverContent>
+    </Popover>
   );
 }
