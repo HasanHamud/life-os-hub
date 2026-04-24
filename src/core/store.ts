@@ -181,7 +181,7 @@ export const useStore = create<State>((set, get) => ({
       status: patch.status ?? existing?.status ?? "todo",
       priority: patch.priority ?? existing?.priority ?? "med",
       effort: patch.effort ?? existing?.effort,
-      deadline: patch.deadline ?? existing?.deadline,
+      deadline: "deadline" in patch ? patch.deadline : existing?.deadline,
       projectId: patch.projectId ?? existing?.projectId,
       goalId: patch.goalId ?? existing?.goalId,
       tagIds: patch.tagIds ?? existing?.tagIds ?? [],
