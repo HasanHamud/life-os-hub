@@ -203,6 +203,67 @@ export function TaskDialog({
             </div>
           </div>
 
+          {/* Subtasks */}
+          <div className="rounded-md border bg-muted/30 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-xs">
+                Subtasks {subtasks.length > 0 && (
+                  <span className="text-muted-foreground ml-1 tabular-nums">
+                    {subtasks.filter((s) => s.status === "done").length}/{subtasks.length}
+                  </span>
+                )}
+              </Label>
+            </div>
+            {!existing && (
+              <p className="text-[11px] text-muted-foreground">Save this task first to add subtasks.</p>
+            )}
+            {existing && subtasks.length === 0 && (
+              <p className="text-[11px] text-muted-foreground mb-2">No subtasks yet — break this task down below.</p>
+            )}
+            {existing && subtasks.length > 0 && (
+              <div className="space-y-1 mb-2 max-h-40 overflow-y-auto scrollbar-thin">
+                {subtasks.map((s) => {
+                  const done = s.status === "done";
+                  return (
+                    <div key={s.id} className="flex items-center gap-2 group/sub py-1">
+                      <button
+                        type="button"
+                        onClick={() => toggleSubtask(s.id, done)}
+                        className={cn(
+                          "h-4 w-4 rounded-sm border flex items-center justify-center shrink-0",
+                          done ? "bg-success border-success" : "border-muted-foreground/40 hover:border-foreground",
+                        )}
+                      >
+                        {done && <span className="text-[10px] text-background leading-none">✓</span>}
+                      </button>
+                      <span className={cn("text-sm flex-1 truncate", done && "line-through text-muted-foreground")}>{s.title}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeSubtask(s.id)}
+                        className="opacity-0 group-hover/sub:opacity-100 text-muted-foreground hover:text-destructive p-1"
+                        aria-label="Delete subtask"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {existing && (
+              <div className="flex gap-2">
+                <Input
+                  value={newSubtaskTitle}
+                  onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSubtask(); } }}
+                  placeholder="Add subtask and press Enter"
+                  className="h-8 text-sm"
+                />
+                <Button type="button" size="sm" onClick={addSubtask} disabled={!newSubtaskTitle.trim()}>Add</Button>
+              </div>
+            )}
+          </div>
+
           <div>
             <Label className="text-xs">Tags</Label>
             <div className="flex flex-wrap gap-1.5 mt-1">
