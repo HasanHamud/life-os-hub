@@ -135,6 +135,10 @@ export const useStore = create<State>((set, get) => ({
     if (!settings) {
       settings = DEFAULT_SETTINGS;
       await putOne("settings", settings);
+    } else {
+      // backfill new fields for existing installs
+      settings = { ...DEFAULT_SETTINGS, ...settings };
+      await putOne("settings", settings);
     }
 
     // Seed sample data on first run
