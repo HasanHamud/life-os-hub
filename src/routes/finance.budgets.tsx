@@ -18,10 +18,10 @@ export const Route = createFileRoute("/finance/budgets")({
 });
 
 function BudgetsPage() {
-  const { budgets, categories, transactions, accounts, upsertBudget, deleteBudget } = useStore();
+  const { budgets, categories, transactions, settings, upsertBudget, deleteBudget } = useStore();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Budget | null>(null);
-  const currency = accounts[0]?.currency ?? "USD";
+  const currency = settings.baseCurrency;
 
   return (
     <PageContainer>
