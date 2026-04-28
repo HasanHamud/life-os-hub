@@ -19,13 +19,19 @@ export const Route = createFileRoute("/finance/savings")({
 });
 
 function SavingsPage() {
-  const { savingsGoals, accounts, goals, upsertSavingsGoal, deleteSavingsGoal } = useStore();
+  const { savingsGoals, goals, settings, upsertSavingsGoal, deleteSavingsGoal } = useStore();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<SavingsGoal | null>(null);
-  const currency = accounts[0]?.currency ?? "USD";
+  const base = settings.baseCurrency;
 
-  const totalSaved = savingsGoals.reduce((a, g) => a + g.currentAmount, 0);
-  const totalTarget = savingsGoals.reduce((a, g) => a + g.targetAmount, 0);
+  const totalSavedBase = savingsGoals.reduce(
+    (a, g) => a + convertCurrency(g.currentAmount, g.currency ?? "USD", base, settings.usdToLbpRate),
+    0,
+  );
+  const totalTargetBase = savingsGoals.reduce(
+    (a, g) => a + convertCurrency(g.targetAmount, g.currency ?? "USD", base, settings.usdToLbpRate),
+    0,
+  );
 
   return (
     <PageContainer>
@@ -38,22 +44,26 @@ function SavingsPage() {
       <div className="rounded-xl border bg-card p-4 mb-4 flex items-center gap-4">
         <PiggyBank className="h-8 w-8 text-warning" />
         <div className="flex-1">
-          <div className="text-xs text-muted-foreground">Total saved</div>
+          <div className="text-xs text-muted-foreground">Total saved (in {base})</div>
           <div className="text-2xl font-display font-semibold tabular-nums">
-            {fmtMoney(totalSaved, currency)} <span className="text-sm text-muted-foreground">/ {fmtMoney(totalTarget, currency)}</span>
+            {fmtMoney(totalSavedBase, base)} <span className="text-sm text-muted-foreground">/ {fmtMoney(totalTargetBase, base)}</span>
           </div>
         </div>
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {savingsGoals.map((g) => {
+          const cur = g.currency ?? "USD";
           const pct = g.targetAmount ? Math.min(100, Math.round((g.currentAmount / g.targetAmount) * 100)) : 0;
           const days = g.deadline ? differenceInDays(g.deadline, new Date()) : null;
           const linkedGoal = g.linkedGoalId ? goals.find((x) => x.id === g.linkedGoalId) : null;
           return (
             <div key={g.id} className="rounded-xl border bg-card p-4 group">
               <div className="flex items-start justify-between mb-2">
-                <div className="text-sm font-semibold truncate">{g.title}</div>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold truncate">{g.title}</div>
+                  <div className="text-[10px] text-muted-foreground uppercase">{cur}</div>
+                </div>
                 <div className="flex opacity-0 group-hover:opacity-100">
                   <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setEditing(g); setOpen(true); }}><Pencil className="h-3 w-3" /></Button>
                   <Button size="icon" variant="ghost" className="h-6 w-6" onClick={async () => {
@@ -62,12 +72,12 @@ function SavingsPage() {
                   }}><Trash2 className="h-3 w-3 text-destructive" /></Button>
                 </div>
               </div>
-              <div className="text-2xl font-display font-semibold tabular-nums mb-2">{fmtMoney(g.currentAmount, currency)}</div>
+              <div className="text-2xl font-display font-semibold tabular-nums mb-2">{fmtMoney(g.currentAmount, cur)}</div>
               <div className="h-2 rounded-full bg-muted overflow-hidden">
                 <div className="h-full" style={{ width: `${pct}%`, background: g.color ?? "var(--success)" }} />
               </div>
               <div className="flex items-center justify-between text-[11px] text-muted-foreground mt-1.5">
-                <span>{pct}% of {fmtMoney(g.targetAmount, currency)}</span>
+                <span>{pct}% of {fmtMoney(g.targetAmount, cur)}</span>
                 {g.deadline && <span>{days! >= 0 ? `${days}d left` : `${-days!}d overdue`}</span>}
               </div>
               {linkedGoal && <div className="text-[10px] text-primary mt-2">↳ {linkedGoal.title}</div>}
