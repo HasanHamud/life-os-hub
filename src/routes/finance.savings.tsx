@@ -104,6 +104,7 @@ function SavingsDialog({
   const [title, setTitle] = useState("");
   const [target, setTarget] = useState("");
   const [current, setCurrent] = useState("0");
+  const [currency, setCurrency] = useState<string>("USD");
   const [deadline, setDeadline] = useState("");
   const [linkedGoalId, setLinkedGoalId] = useState("none");
   const [color, setColor] = useState("#90b890");
@@ -112,12 +113,13 @@ function SavingsDialog({
     setTitle(goal.title);
     setTarget(String(goal.targetAmount));
     setCurrent(String(goal.currentAmount));
+    setCurrency(goal.currency ?? "USD");
     setDeadline(goal.deadline ? format(goal.deadline, "yyyy-MM-dd") : "");
     setLinkedGoalId(goal.linkedGoalId ?? "none");
     setColor(goal.color ?? "#90b890");
   }
 
-  const reset = () => { setTitle(""); setTarget(""); setCurrent("0"); setDeadline(""); setLinkedGoalId("none"); setColor("#90b890"); };
+  const reset = () => { setTitle(""); setTarget(""); setCurrent("0"); setCurrency("USD"); setDeadline(""); setLinkedGoalId("none"); setColor("#90b890"); };
 
   const submit = async () => {
     if (!title.trim()) return toast.error("Title required");
@@ -129,6 +131,7 @@ function SavingsDialog({
       title: title.trim(),
       targetAmount: t,
       currentAmount: Number(current) || 0,
+      currency,
       deadline: deadline ? new Date(deadline).getTime() : undefined,
       linkedGoalId: linkedGoalId === "none" ? undefined : linkedGoalId,
       color,
