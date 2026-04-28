@@ -24,7 +24,7 @@ export function TransactionDialog({
   defaultType?: TxType;
   defaultAccountId?: string;
 }) {
-  const { transactions, accounts, categories, tasks, goals, upsertTransaction, deleteTransaction } = useStore();
+  const { transactions, accounts, categories, tasks, goals, settings, upsertTransaction, deleteTransaction } = useStore();
   const existing = transactionId ? transactions.find((t) => t.id === transactionId) : undefined;
 
   const [type, setType] = useState<TxType>("expense");
