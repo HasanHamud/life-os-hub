@@ -122,8 +122,16 @@ export function TransactionDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Amount</Label>
+              <Label className="text-xs">
+                Amount {accountCurrency && <span className="text-muted-foreground">({accountCurrency})</span>}
+              </Label>
               <Input type="number" step="0.01" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" autoFocus />
+              {amountNum > 0 && accountCurrency && otherCurrency && (
+                <div className="text-[10px] text-muted-foreground mt-1 tabular-nums">
+                  ≈ {fmtMoney(convertCurrency(amountNum, accountCurrency, otherCurrency, settings.usdToLbpRate), otherCurrency)}
+                  <span className="opacity-60"> · 1 USD = {settings.usdToLbpRate.toLocaleString()} LBP</span>
+                </div>
+              )}
             </div>
             <div>
               <Label className="text-xs">Date</Label>
