@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Trash2, Pencil, PiggyBank } from "lucide-react";
 import { toast } from "sonner";
-import { fmtMoney } from "@/core/finance-utils";
+import { fmtMoney, convertCurrency } from "@/core/finance-utils";
 import type { SavingsGoal } from "@/core/finance-types";
 import { format, differenceInDays } from "date-fns";
 
