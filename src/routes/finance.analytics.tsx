@@ -15,15 +15,20 @@ export const Route = createFileRoute("/finance/analytics")({
 });
 
 function FinanceAnalytics() {
-  const { transactions, categories, accounts, sessions, projects } = useStore();
-  const currency = accounts[0]?.currency ?? "USD";
+  const { transactions, categories, accounts, sessions, projects, settings } = useStore();
+  const currency = settings.baseCurrency;
+  const rate = settings.usdToLbpRate;
+  const txCurrency = (accountId: string) => accounts.find((a) => a.id === accountId)?.currency ?? "USD";
+  const toBase = (amt: number, from: string) => convertCurrency(amt, from, currency, rate);
 
   const last30 = useMemo(() => eachDayOfInterval({ start: subDays(new Date(), 29), end: new Date() }), []);
 
   const dailySpend = last30.map((d) => ({
     date: format(d, "MMM d"),
-    expense: Math.round(transactions.filter((t) => t.type === "expense" && isSameDay(t.date, d)).reduce((a, t) => a + t.amount, 0)),
-    income: Math.round(transactions.filter((t) => t.type === "income" && isSameDay(t.date, d)).reduce((a, t) => a + t.amount, 0)),
+    expense: Math.round(transactions.filter((t) => t.type === "expense" && isSameDay(t.date, d))
+      .reduce((a, t) => a + toBase(t.amount, txCurrency(t.accountId)), 0)),
+    income: Math.round(transactions.filter((t) => t.type === "income" && isSameDay(t.date, d))
+      .reduce((a, t) => a + toBase(t.amount, txCurrency(t.accountId)), 0)),
   }));
 
   // Last 6 months income vs expenses
@@ -31,22 +36,22 @@ function FinanceAnalytics() {
   const monthly = months.map((m) => {
     const start = startOfMonth(m).getTime(), end = endOfMonth(m).getTime();
     const inP = transactions.filter((t) => t.date >= start && t.date <= end);
-    const income = inP.filter((t) => t.type === "income").reduce((a, t) => a + t.amount, 0);
-    const expenses = inP.filter((t) => t.type === "expense").reduce((a, t) => a + t.amount, 0);
+    const income = inP.filter((t) => t.type === "income").reduce((a, t) => a + toBase(t.amount, txCurrency(t.accountId)), 0);
+    const expenses = inP.filter((t) => t.type === "expense").reduce((a, t) => a + toBase(t.amount, txCurrency(t.accountId)), 0);
     return { month: format(m, "MMM"), income: Math.round(income), expenses: Math.round(expenses), net: Math.round(income - expenses) };
   });
 
   const thisMonthTx = transactions.filter((t) => isSameMonth(t.date, new Date()));
-  const expenses = thisMonthTx.filter((t) => t.type === "expense").reduce((a, t) => a + t.amount, 0);
-  const income = thisMonthTx.filter((t) => t.type === "income").reduce((a, t) => a + t.amount, 0);
+  const expenses = thisMonthTx.filter((t) => t.type === "expense").reduce((a, t) => a + toBase(t.amount, txCurrency(t.accountId)), 0);
+  const income = thisMonthTx.filter((t) => t.type === "income").reduce((a, t) => a + toBase(t.amount, txCurrency(t.accountId)), 0);
   const sRate = savingsRate(income, expenses);
 
   const byCategory = topCategories(thisMonthTx, categories, "expense", 8);
 
   const dailyAvg = expenses / Math.max(1, new Date().getDate());
 
-  // Net worth (simple: sum balances)
-  const netWorth = accounts.reduce((a, x) => a + x.balance, 0);
+  // Net worth (sum balances converted to base currency)
+  const netWorth = accounts.reduce((a, x) => a + toBase(x.balance, x.currency), 0);
 
   // Time vs money: sessions hours vs money spent on related project tasks
   const projectInsights = projects.slice(0, 5).map((p) => {
