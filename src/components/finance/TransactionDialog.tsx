@@ -53,6 +53,9 @@ export function TransactionDialog({
   }, [open, existing, defaultType, defaultAccountId, accounts]);
 
   const filteredCats = categories.filter((c) => (type === "transfer" ? false : c.type === type));
+  const accountCurrency = accounts.find((a) => a.id === accountId)?.currency ?? "USD";
+  const otherCurrency = accountCurrency === "USD" ? "LBP" : "USD";
+  const amountNum = Number(amount) || 0;
 
   const submit = async () => {
     const amt = Number(amount);
