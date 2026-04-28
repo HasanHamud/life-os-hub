@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useStore } from "@/core/store";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { fmtMoney, signedAmount, topCategories, savingsRate, financialHealthScore, budgetSpent, periodRange } from "@/core/finance-utils";
+import { fmtMoney, signedAmount, topCategories, savingsRate, financialHealthScore, budgetSpent, periodRange, convertCurrency } from "@/core/finance-utils";
 import { TransactionDialog } from "@/components/finance/TransactionDialog";
 import { TrendingUp, TrendingDown, Wallet, PiggyBank, Plus, ArrowRightLeft, Sparkles } from "lucide-react";
 import { format, isWeekend, startOfMonth, endOfMonth } from "date-fns";
