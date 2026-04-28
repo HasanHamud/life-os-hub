@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, ListChecks, Calendar, Clock, Target, FolderKanban,
-  Timer, BarChart3, Tag as TagIcon, BookOpen, Settings as SettingsIcon, Focus,
+  Timer, BarChart3, Tag as TagIcon, BookOpen, Settings as SettingsIcon, Focus, Watch,
   Wallet, ArrowLeftRight, Layers, PiggyBank, LineChart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ const NAV = [
   { to: "/projects", label: "Projects", icon: FolderKanban },
   { to: "/goals", label: "Goals", icon: Target },
   { to: "/pomodoro", label: "Pomodoro", icon: Timer },
+  { to: "/stopwatch", label: "Stopwatch", icon: Watch },
   { to: "/focus", label: "Focus", icon: Focus },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/tags", label: "Tags", icon: TagIcon },
