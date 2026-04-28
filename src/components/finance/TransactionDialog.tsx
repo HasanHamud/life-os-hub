@@ -10,7 +10,7 @@ import type { TxType, FinanceRecurrenceFreq } from "@/core/finance-types";
 import { format } from "date-fns";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { categoryPath } from "@/core/finance-utils";
+import { categoryPath, convertCurrency, fmtMoney } from "@/core/finance-utils";
 
 const TYPES: TxType[] = ["expense", "income", "transfer"];
 const FREQS: FinanceRecurrenceFreq[] = ["none", "daily", "weekly", "monthly", "yearly"];
@@ -24,7 +24,7 @@ export function TransactionDialog({
   defaultType?: TxType;
   defaultAccountId?: string;
 }) {
-  const { transactions, accounts, categories, tasks, goals, upsertTransaction, deleteTransaction } = useStore();
+  const { transactions, accounts, categories, tasks, goals, settings, upsertTransaction, deleteTransaction } = useStore();
   const existing = transactionId ? transactions.find((t) => t.id === transactionId) : undefined;
 
   const [type, setType] = useState<TxType>("expense");
@@ -53,6 +53,9 @@ export function TransactionDialog({
   }, [open, existing, defaultType, defaultAccountId, accounts]);
 
   const filteredCats = categories.filter((c) => (type === "transfer" ? false : c.type === type));
+  const accountCurrency = accounts.find((a) => a.id === accountId)?.currency ?? "USD";
+  const otherCurrency = accountCurrency === "USD" ? "LBP" : "USD";
+  const amountNum = Number(amount) || 0;
 
   const submit = async () => {
     const amt = Number(amount);
@@ -122,8 +125,16 @@ export function TransactionDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Amount</Label>
+              <Label className="text-xs">
+                Amount {accountCurrency && <span className="text-muted-foreground">({accountCurrency})</span>}
+              </Label>
               <Input type="number" step="0.01" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" autoFocus />
+              {amountNum > 0 && accountCurrency && otherCurrency && (
+                <div className="text-[10px] text-muted-foreground mt-1 tabular-nums">
+                  ≈ {fmtMoney(convertCurrency(amountNum, accountCurrency, otherCurrency, settings.usdToLbpRate), otherCurrency)}
+                  <span className="opacity-60"> · 1 USD = {settings.usdToLbpRate.toLocaleString()} LBP</span>
+                </div>
+              )}
             </div>
             <div>
               <Label className="text-xs">Date</Label>

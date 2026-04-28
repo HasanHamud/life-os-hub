@@ -96,6 +96,8 @@ export interface Snapshot {
   data: string; // JSON
 }
 
+export type Currency = "USD" | "LBP";
+
 export interface Settings {
   id: "global";
   pomodoroFocus: number; // minutes
@@ -105,4 +107,7 @@ export interface Settings {
   notificationsEnabled: boolean;
   workdayStart: number; // hour 0-23
   workdayEnd: number;
+  // Multi-currency
+  baseCurrency: Currency; // currency totals are reported in
+  usdToLbpRate: number; // how many LBP for 1 USD (e.g. 90000)
 }

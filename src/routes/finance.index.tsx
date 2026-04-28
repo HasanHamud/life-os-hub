@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useStore } from "@/core/store";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { fmtMoney, signedAmount, topCategories, savingsRate, financialHealthScore, budgetSpent, periodRange } from "@/core/finance-utils";
+import { fmtMoney, signedAmount, topCategories, savingsRate, financialHealthScore, budgetSpent, periodRange, convertCurrency } from "@/core/finance-utils";
 import { TransactionDialog } from "@/components/finance/TransactionDialog";
 import { TrendingUp, TrendingDown, Wallet, PiggyBank, Plus, ArrowRightLeft, Sparkles } from "lucide-react";
 import { format, isWeekend, startOfMonth, endOfMonth } from "date-fns";
@@ -19,17 +19,25 @@ export const Route = createFileRoute("/finance/")({
 });
 
 function FinanceDashboard() {
-  const { accounts, transactions, categories, budgets, savingsGoals } = useStore();
+  const { accounts, transactions, categories, budgets, savingsGoals, settings } = useStore();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const currency = accounts[0]?.currency ?? "USD";
-  const totalBalance = accounts.reduce((a, x) => a + x.balance, 0);
+  const currency = settings.baseCurrency;
+  const rate = settings.usdToLbpRate;
+
+  // Helper to get the currency of a transaction (derived from its account)
+  const txCurrency = (accountId: string) => accounts.find((a) => a.id === accountId)?.currency ?? "USD";
+  const toBase = (amt: number, from: string) => convertCurrency(amt, from, currency, rate);
+
+  const totalBalance = accounts.reduce((a, x) => a + toBase(x.balance, x.currency), 0);
 
   const { start, end } = periodRange("monthly");
   const monthTx = transactions.filter((t) => t.date >= start && t.date <= end);
-  const income = monthTx.filter((t) => t.type === "income").reduce((a, t) => a + t.amount, 0);
-  const expenses = monthTx.filter((t) => t.type === "expense").reduce((a, t) => a + t.amount, 0);
+  const income = monthTx.filter((t) => t.type === "income")
+    .reduce((a, t) => a + toBase(t.amount, txCurrency(t.accountId)), 0);
+  const expenses = monthTx.filter((t) => t.type === "expense")
+    .reduce((a, t) => a + toBase(t.amount, txCurrency(t.accountId)), 0);
   const sRate = savingsRate(income, expenses);
 
   const recentTx = useMemo(
@@ -174,7 +182,7 @@ function FinanceDashboard() {
                           <div className="h-full" style={{ width: `${pct}%`, background: g.color }} />
                         </div>
                         <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
-                          {fmtMoney(g.currentAmount, currency)} / {fmtMoney(g.targetAmount, currency)}
+                          {fmtMoney(g.currentAmount, g.currency ?? "USD")} / {fmtMoney(g.targetAmount, g.currency ?? "USD")}
                         </div>
                       </div>
                     );

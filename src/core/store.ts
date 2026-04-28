@@ -94,6 +94,8 @@ const DEFAULT_SETTINGS: Settings = {
   notificationsEnabled: false,
   workdayStart: 8,
   workdayEnd: 20,
+  baseCurrency: "USD",
+  usdToLbpRate: 90000,
 };
 
 export const useStore = create<State>((set, get) => ({
@@ -132,6 +134,10 @@ export const useStore = create<State>((set, get) => ({
     let settings = await getOne<Settings>("settings", "global");
     if (!settings) {
       settings = DEFAULT_SETTINGS;
+      await putOne("settings", settings);
+    } else {
+      // backfill new fields for existing installs
+      settings = { ...DEFAULT_SETTINGS, ...settings };
       await putOne("settings", settings);
     }
 
@@ -479,6 +485,7 @@ export const useStore = create<State>((set, get) => ({
       title: patch.title ?? existing?.title ?? "Savings Goal",
       targetAmount: patch.targetAmount ?? existing?.targetAmount ?? 0,
       currentAmount: patch.currentAmount ?? existing?.currentAmount ?? 0,
+      currency: patch.currency ?? existing?.currency ?? "USD",
       deadline: patch.deadline ?? existing?.deadline,
       linkedGoalId: patch.linkedGoalId ?? existing?.linkedGoalId,
       accountId: patch.accountId ?? existing?.accountId,
