@@ -20,7 +20,7 @@ const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 export function TaskDialog({
   open, onOpenChange, taskId, defaultStatus,
 }: { open: boolean; onOpenChange: (v: boolean) => void; taskId?: string | null; defaultStatus?: TaskStatus }) {
-  const { tasks, projects, goals, tags, upsertTask, deleteTask } = useStore();
+  const { tasks, projects, goals, tags, upsertTask, deleteTask, setTaskStatus } = useStore();
   const existing = taskId ? tasks.find((t) => t.id === taskId) : undefined;
 
   const [title, setTitle] = useState("");
