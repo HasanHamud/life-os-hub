@@ -123,7 +123,38 @@ function SettingsPage() {
         </div>
 
         <div className="rounded-xl border bg-card p-5 md:col-span-2">
-          <h3 className="text-sm font-semibold mb-1">Data</h3>
+          <h3 className="text-sm font-semibold mb-1">Currency & Exchange Rate</h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            Used to convert between USD and Lebanese Lira (LBP) for totals and analytics. Each account or savings goal still keeps its own native currency.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Base currency (totals shown in)</Label>
+              <Select value={settings.baseCurrency} onValueChange={(v) => updateSettings({ baseCurrency: v as "USD" | "LBP" })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD — US Dollar</SelectItem>
+                  <SelectItem value="LBP">LBP — Lebanese Lira</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">1 USD = ? LBP</Label>
+              <Input
+                type="number"
+                min={1}
+                step={100}
+                value={settings.usdToLbpRate}
+                onChange={(e) => updateSettings({ usdToLbpRate: Math.max(1, Number(e.target.value) || 1) })}
+              />
+              <div className="text-[10px] text-muted-foreground mt-1 tabular-nums">
+                Current rate: 1 USD = {settings.usdToLbpRate.toLocaleString()} LBP
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border bg-card p-5 md:col-span-2">
           <p className="text-xs text-muted-foreground mb-4">Everything lives in your browser's IndexedDB.</p>
           <div className="flex flex-wrap gap-2">
             <Button onClick={doExport}><Download className="h-4 w-4 mr-1" /> Export JSON</Button>
