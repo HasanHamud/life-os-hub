@@ -71,7 +71,7 @@ function FinanceAnalytics() {
 
   return (
     <PageContainer>
-      <PageHeader title="Finance analytics" description="Spending patterns, trends, and money-time insight." />
+      <PageHeader title="Finance analytics" description={`Totals in ${currency} @ 1 USD = ${rate.toLocaleString()} LBP. Spending patterns, trends, and money-time insight.`} />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Stat label="Net worth" value={fmtMoney(netWorth, currency)} hint="Sum of account balances" />
