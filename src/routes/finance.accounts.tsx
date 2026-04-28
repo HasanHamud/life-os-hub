@@ -20,7 +20,7 @@ export const Route = createFileRoute("/finance/accounts")({
 const TYPES: AccountType[] = ["cash", "bank", "savings", "credit"];
 
 function AccountsPage() {
-  const { accounts, transactions, upsertAccount, deleteAccount } = useStore();
+  const { accounts, transactions, settings, upsertAccount, deleteAccount } = useStore();
   const [editing, setEditing] = useState<Account | null>(null);
   const [open, setOpen] = useState(false);
 
@@ -28,6 +28,11 @@ function AccountsPage() {
     acc[a.currency] = (acc[a.currency] ?? 0) + a.balance;
     return acc;
   }, {});
+
+  const totalInBase = accounts.reduce(
+    (sum, a) => sum + convertCurrency(a.balance, a.currency, settings.baseCurrency, settings.usdToLbpRate),
+    0,
+  );
 
   return (
     <PageContainer>
@@ -38,12 +43,17 @@ function AccountsPage() {
       />
 
       <div className="rounded-xl border bg-card p-4 mb-4">
-        <div className="text-xs text-muted-foreground mb-1">Total balance</div>
-        <div className="flex flex-wrap gap-4">
+        <div className="text-xs text-muted-foreground mb-1">
+          Total balance <span className="opacity-70">(in {settings.baseCurrency} @ 1 USD = {settings.usdToLbpRate.toLocaleString()} LBP)</span>
+        </div>
+        <div className="text-3xl font-display font-semibold tabular-nums mb-3">
+          {fmtMoney(totalInBase, settings.baseCurrency)}
+        </div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
           {Object.entries(totalByCurrency).map(([cur, val]) => (
-            <div key={cur} className="text-2xl font-display font-semibold tabular-nums">{fmtMoney(val, cur)}</div>
+            <div key={cur} className="tabular-nums">{cur}: {fmtMoney(val, cur)}</div>
           ))}
-          {accounts.length === 0 && <div className="text-sm text-muted-foreground">No accounts yet.</div>}
+          {accounts.length === 0 && <div>No accounts yet.</div>}
         </div>
       </div>
 
