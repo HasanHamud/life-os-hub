@@ -145,7 +145,13 @@ function AccountDialog({
             </div>
             <div>
               <Label className="text-xs">Currency</Label>
-              <Input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} maxLength={4} />
+              <Select value={currency} onValueChange={(v) => setCurrency(v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD — US Dollar</SelectItem>
+                  <SelectItem value="LBP">LBP — Lebanese Lira</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label className="text-xs">Opening balance</Label>
