@@ -5,6 +5,7 @@ import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { exportAll, importAll, clearAll, putOne, getAll, delOne, uid } from "@/core/db";
 import { Download, Upload, Trash2, Camera, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
