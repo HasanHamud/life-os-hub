@@ -3,11 +3,26 @@ import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameWe
 
 export const fmtMoney = (n: number, currency = "USD") => {
   try {
+    if (currency === "LBP") {
+      // LBP: no decimals, custom suffix to avoid odd Intl renderings
+      return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(Math.round(n))} LBP`;
+    }
     return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 2 }).format(n);
   } catch {
     return `${currency} ${n.toFixed(2)}`;
   }
 };
+
+/** Convert an amount from `from` currency into `to` currency given the USD→LBP rate. */
+export function convertCurrency(amount: number, from: string, to: string, usdToLbpRate: number): number {
+  if (!amount || from === to) return amount;
+  if (!usdToLbpRate || usdToLbpRate <= 0) return amount;
+  // Normalize to USD first
+  const inUsd = from === "USD" ? amount : from === "LBP" ? amount / usdToLbpRate : amount;
+  if (to === "USD") return inUsd;
+  if (to === "LBP") return inUsd * usdToLbpRate;
+  return inUsd;
+}
 
 export const signedAmount = (t: Transaction) =>
   t.type === "income" ? t.amount : t.type === "expense" ? -t.amount : 0;
