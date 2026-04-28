@@ -59,7 +59,7 @@ function FinanceAnalytics() {
     const hours = sessions.filter((s) => s.taskId && taskIds.includes(s.taskId) && s.type === "focus")
       .reduce((a, s) => a + s.duration, 0) / 3600;
     const money = transactions.filter((t) => t.type === "expense" && t.relatedTaskId && taskIds.includes(t.relatedTaskId))
-      .reduce((a, t) => a + t.amount, 0);
+      .reduce((a, t) => a + toBase(t.amount, txCurrency(t.accountId)), 0);
     return { name: p.name, hours: Math.round(hours * 10) / 10, money: Math.round(money) };
   });
 
