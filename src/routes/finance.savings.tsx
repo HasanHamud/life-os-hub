@@ -72,7 +72,13 @@ function SavingsPage() {
                   }}><Trash2 className="h-3 w-3 text-destructive" /></Button>
                 </div>
               </div>
-              <div className="text-2xl font-display font-semibold tabular-nums mb-2">{fmtMoney(g.currentAmount, cur)}</div>
+              <div className="text-2xl font-display font-semibold tabular-nums">{fmtMoney(g.currentAmount, cur)}</div>
+              {cur !== base && (
+                <div className="text-[11px] text-muted-foreground tabular-nums mb-2">
+                  ≈ {fmtMoney(convertCurrency(g.currentAmount, cur, base, settings.usdToLbpRate), base)}
+                </div>
+              )}
+              {cur === base && <div className="mb-2" />}
               <div className="h-2 rounded-full bg-muted overflow-hidden">
                 <div className="h-full" style={{ width: `${pct}%`, background: g.color ?? "var(--success)" }} />
               </div>

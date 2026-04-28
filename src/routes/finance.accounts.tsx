@@ -83,6 +83,11 @@ function AccountsPage() {
                 </div>
               </div>
               <div className="text-2xl font-display font-semibold tabular-nums">{fmtMoney(a.balance, a.currency)}</div>
+              {a.currency !== settings.baseCurrency && (
+                <div className="text-[11px] text-muted-foreground tabular-nums">
+                  ≈ {fmtMoney(convertCurrency(a.balance, a.currency, settings.baseCurrency, settings.usdToLbpRate), settings.baseCurrency)}
+                </div>
+              )}
               <div className="text-[11px] text-muted-foreground mt-1">{txCount} transactions · opening {fmtMoney(a.initialBalance, a.currency)}</div>
             </div>
           );
