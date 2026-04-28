@@ -44,7 +44,9 @@ function SavingsPage() {
       <div className="rounded-xl border bg-card p-4 mb-4 flex items-center gap-4">
         <PiggyBank className="h-8 w-8 text-warning" />
         <div className="flex-1">
-          <div className="text-xs text-muted-foreground">Total saved (in {base})</div>
+          <div className="text-xs text-muted-foreground">
+            Total saved <span className="opacity-70">(in {base} @ 1 USD = {settings.usdToLbpRate.toLocaleString()} LBP)</span>
+          </div>
           <div className="text-2xl font-display font-semibold tabular-nums">
             {fmtMoney(totalSavedBase, base)} <span className="text-sm text-muted-foreground">/ {fmtMoney(totalTargetBase, base)}</span>
           </div>
