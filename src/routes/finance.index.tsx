@@ -19,17 +19,25 @@ export const Route = createFileRoute("/finance/")({
 });
 
 function FinanceDashboard() {
-  const { accounts, transactions, categories, budgets, savingsGoals } = useStore();
+  const { accounts, transactions, categories, budgets, savingsGoals, settings } = useStore();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const currency = accounts[0]?.currency ?? "USD";
-  const totalBalance = accounts.reduce((a, x) => a + x.balance, 0);
+  const currency = settings.baseCurrency;
+  const rate = settings.usdToLbpRate;
+
+  // Helper to get the currency of a transaction (derived from its account)
+  const txCurrency = (accountId: string) => accounts.find((a) => a.id === accountId)?.currency ?? "USD";
+  const toBase = (amt: number, from: string) => convertCurrency(amt, from, currency, rate);
+
+  const totalBalance = accounts.reduce((a, x) => a + toBase(x.balance, x.currency), 0);
 
   const { start, end } = periodRange("monthly");
   const monthTx = transactions.filter((t) => t.date >= start && t.date <= end);
-  const income = monthTx.filter((t) => t.type === "income").reduce((a, t) => a + t.amount, 0);
-  const expenses = monthTx.filter((t) => t.type === "expense").reduce((a, t) => a + t.amount, 0);
+  const income = monthTx.filter((t) => t.type === "income")
+    .reduce((a, t) => a + toBase(t.amount, txCurrency(t.accountId)), 0);
+  const expenses = monthTx.filter((t) => t.type === "expense")
+    .reduce((a, t) => a + toBase(t.amount, txCurrency(t.accountId)), 0);
   const sRate = savingsRate(income, expenses);
 
   const recentTx = useMemo(
