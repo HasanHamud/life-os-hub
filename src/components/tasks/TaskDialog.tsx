@@ -37,6 +37,38 @@ export function TaskDialog({
   const [recFreq, setRecFreq] = useState<RecurrenceFreq>("none");
   const [recDays, setRecDays] = useState<number[]>([]);
   const [recInterval, setRecInterval] = useState<string>("2");
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState<string>("");
+
+  const subtasks = existing ? tasks.filter((t) => t.parentTaskId === existing.id) : [];
+
+  const addSubtask = async () => {
+    if (!existing) {
+      toast.error("Save the task first to add subtasks");
+      return;
+    }
+    const t = newSubtaskTitle.trim();
+    if (!t) return;
+    await upsertTask({
+      title: t,
+      status: "todo",
+      priority: "med",
+      parentTaskId: existing.id,
+      projectId: existing.projectId,
+      goalId: existing.goalId,
+      tagIds: [],
+    });
+    setNewSubtaskTitle("");
+    toast.success("Subtask added");
+  };
+
+  const toggleSubtask = async (subId: string, done: boolean) => {
+    await setTaskStatus(subId, done ? "todo" : "done");
+  };
+
+  const removeSubtask = async (subId: string) => {
+    await deleteTask(subId);
+    toast.success("Subtask deleted");
+  };
 
   useEffect(() => {
     if (!open) return;
