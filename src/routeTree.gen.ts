@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TimeRouteImport } from './routes/time'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as TagsRouteImport } from './routes/tags'
+import { Route as StopwatchRouteImport } from './routes/stopwatch'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as PomodoroRouteImport } from './routes/pomodoro'
@@ -43,6 +44,11 @@ const TasksRoute = TasksRouteImport.update({
 const TagsRoute = TagsRouteImport.update({
   id: '/tags',
   path: '/tags',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StopwatchRoute = StopwatchRouteImport.update({
+  id: '/stopwatch',
+  path: '/stopwatch',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -142,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/pomodoro': typeof PomodoroRoute
   '/projects': typeof ProjectsRoute
   '/settings': typeof SettingsRoute
+  '/stopwatch': typeof StopwatchRoute
   '/tags': typeof TagsRoute
   '/tasks': typeof TasksRoute
   '/time': typeof TimeRoute
@@ -163,6 +170,7 @@ export interface FileRoutesByTo {
   '/pomodoro': typeof PomodoroRoute
   '/projects': typeof ProjectsRoute
   '/settings': typeof SettingsRoute
+  '/stopwatch': typeof StopwatchRoute
   '/tags': typeof TagsRoute
   '/tasks': typeof TasksRoute
   '/time': typeof TimeRoute
@@ -186,6 +194,7 @@ export interface FileRoutesById {
   '/pomodoro': typeof PomodoroRoute
   '/projects': typeof ProjectsRoute
   '/settings': typeof SettingsRoute
+  '/stopwatch': typeof StopwatchRoute
   '/tags': typeof TagsRoute
   '/tasks': typeof TasksRoute
   '/time': typeof TimeRoute
@@ -210,6 +219,7 @@ export interface FileRouteTypes {
     | '/pomodoro'
     | '/projects'
     | '/settings'
+    | '/stopwatch'
     | '/tags'
     | '/tasks'
     | '/time'
@@ -231,6 +241,7 @@ export interface FileRouteTypes {
     | '/pomodoro'
     | '/projects'
     | '/settings'
+    | '/stopwatch'
     | '/tags'
     | '/tasks'
     | '/time'
@@ -253,6 +264,7 @@ export interface FileRouteTypes {
     | '/pomodoro'
     | '/projects'
     | '/settings'
+    | '/stopwatch'
     | '/tags'
     | '/tasks'
     | '/time'
@@ -276,6 +288,7 @@ export interface RootRouteChildren {
   PomodoroRoute: typeof PomodoroRoute
   ProjectsRoute: typeof ProjectsRoute
   SettingsRoute: typeof SettingsRoute
+  StopwatchRoute: typeof StopwatchRoute
   TagsRoute: typeof TagsRoute
   TasksRoute: typeof TasksRoute
   TimeRoute: typeof TimeRoute
@@ -302,6 +315,13 @@ declare module '@tanstack/react-router' {
       path: '/tags'
       fullPath: '/tags'
       preLoaderRoute: typeof TagsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stopwatch': {
+      id: '/stopwatch'
+      path: '/stopwatch'
+      fullPath: '/stopwatch'
+      preLoaderRoute: typeof StopwatchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -460,6 +480,7 @@ const rootRouteChildren: RootRouteChildren = {
   PomodoroRoute: PomodoroRoute,
   ProjectsRoute: ProjectsRoute,
   SettingsRoute: SettingsRoute,
+  StopwatchRoute: StopwatchRoute,
   TagsRoute: TagsRoute,
   TasksRoute: TasksRoute,
   TimeRoute: TimeRoute,

@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Outlet } from "@tanstack/react-router";
 import { Sidebar } from "./Sidebar";
 import { MobileNav } from "./MobileNav";
+import { FloatingTimer } from "./FloatingTimer";
 import { useStore } from "@/core/store";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -27,6 +28,7 @@ export function AppShell() {
         </main>
       </div>
       <Toaster />
+      <FloatingTimer />
     </div>
   );
 }
