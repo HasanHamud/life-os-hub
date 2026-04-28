@@ -151,16 +151,26 @@ function SavingsDialog({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Target amount</Label>
-              <Input type="number" step="0.01" value={target} onChange={(e) => setTarget(e.target.value)} />
-            </div>
-            <div>
-              <Label className="text-xs">Current amount</Label>
-              <Input type="number" step="0.01" value={current} onChange={(e) => setCurrent(e.target.value)} />
+              <Label className="text-xs">Currency</Label>
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD — US Dollar</SelectItem>
+                  <SelectItem value="LBP">LBP — Lebanese Lira</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label className="text-xs">Deadline</Label>
               <Input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">Target amount ({currency})</Label>
+              <Input type="number" step="0.01" value={target} onChange={(e) => setTarget(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">Current amount ({currency})</Label>
+              <Input type="number" step="0.01" value={current} onChange={(e) => setCurrent(e.target.value)} />
             </div>
             <div>
               <Label className="text-xs">Color</Label>
