@@ -64,6 +64,7 @@ export interface SavingsGoal {
   title: string;
   targetAmount: number;
   currentAmount: number; // tracked manually or via deposits
+  currency: string; // e.g. "USD" or "LBP"
   deadline?: number;
   linkedGoalId?: string;
   accountId?: string; // optional dedicated account
