@@ -485,6 +485,7 @@ export const useStore = create<State>((set, get) => ({
       title: patch.title ?? existing?.title ?? "Savings Goal",
       targetAmount: patch.targetAmount ?? existing?.targetAmount ?? 0,
       currentAmount: patch.currentAmount ?? existing?.currentAmount ?? 0,
+      currency: patch.currency ?? existing?.currency ?? "USD",
       deadline: patch.deadline ?? existing?.deadline,
       linkedGoalId: patch.linkedGoalId ?? existing?.linkedGoalId,
       accountId: patch.accountId ?? existing?.accountId,
