@@ -182,7 +182,7 @@ function FinanceDashboard() {
                           <div className="h-full" style={{ width: `${pct}%`, background: g.color }} />
                         </div>
                         <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
-                          {fmtMoney(g.currentAmount, currency)} / {fmtMoney(g.targetAmount, currency)}
+                          {fmtMoney(g.currentAmount, g.currency ?? "USD")} / {fmtMoney(g.targetAmount, g.currency ?? "USD")}
                         </div>
                       </div>
                     );
