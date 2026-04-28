@@ -155,6 +155,7 @@ function SettingsPage() {
         </div>
 
         <div className="rounded-xl border bg-card p-5 md:col-span-2">
+          <h3 className="text-sm font-semibold mb-1">Data</h3>
           <p className="text-xs text-muted-foreground mb-4">Everything lives in your browser's IndexedDB.</p>
           <div className="flex flex-wrap gap-2">
             <Button onClick={doExport}><Download className="h-4 w-4 mr-1" /> Export JSON</Button>
