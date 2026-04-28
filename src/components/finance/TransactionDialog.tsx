@@ -10,7 +10,7 @@ import type { TxType, FinanceRecurrenceFreq } from "@/core/finance-types";
 import { format } from "date-fns";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { categoryPath } from "@/core/finance-utils";
+import { categoryPath, convertCurrency, fmtMoney } from "@/core/finance-utils";
 
 const TYPES: TxType[] = ["expense", "income", "transfer"];
 const FREQS: FinanceRecurrenceFreq[] = ["none", "daily", "weekly", "monthly", "yearly"];
