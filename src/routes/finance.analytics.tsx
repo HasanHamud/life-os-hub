@@ -7,7 +7,7 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
   LineChart, Line, PieChart, Pie, Cell, Legend,
 } from "recharts";
-import { fmtMoney, savingsRate, topCategories } from "@/core/finance-utils";
+import { fmtMoney, savingsRate, topCategories, convertCurrency } from "@/core/finance-utils";
 
 export const Route = createFileRoute("/finance/analytics")({
   head: () => ({ meta: [{ title: "Finance Analytics — Life OS" }] }),
