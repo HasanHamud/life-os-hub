@@ -77,6 +77,9 @@ function FinanceDashboard() {
         }
       />
 
+      <div className="text-[11px] text-muted-foreground mb-2 tabular-nums">
+        Totals shown in <span className="font-medium text-foreground">{currency}</span> · 1 USD = {rate.toLocaleString()} LBP
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Stat icon={Wallet} label="Total balance" value={fmtMoney(totalBalance, currency)} accent="text-primary" />
         <Stat icon={TrendingUp} label="Income (mo.)" value={fmtMoney(income, currency)} accent="text-success" />
