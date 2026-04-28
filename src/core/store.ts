@@ -94,6 +94,8 @@ const DEFAULT_SETTINGS: Settings = {
   notificationsEnabled: false,
   workdayStart: 8,
   workdayEnd: 20,
+  baseCurrency: "USD",
+  usdToLbpRate: 90000,
 };
 
 export const useStore = create<State>((set, get) => ({
