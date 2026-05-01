@@ -83,16 +83,14 @@ export async function handleIntent(intent: Intent | null): Promise<ActionResult>
     }
 
     case "START_POMODORO": {
-      const settings = state.settings;
-      usePomodoro.getState().start({
-        mode: "focus",
-        durationSec: (settings.pomodoroFocus ?? 25) * 60,
-      });
+      const s = state.settings;
+      usePomodoro.getState().start(s.pomodoroFocus ?? 25, s.pomodoroBreak ?? 5);
       return { message: "Starting your focus session." };
     }
 
     case "STOP_POMODORO": {
-      usePomodoro.getState().reset();
+      const s = state.settings;
+      usePomodoro.getState().reset(s.pomodoroFocus ?? 25, s.pomodoroBreak ?? 5);
       return { message: "Pomodoro stopped." };
     }
 
@@ -120,9 +118,11 @@ export async function handleIntent(intent: Intent | null): Promise<ActionResult>
       const rate = state.settings.usdToLbpRate;
       const start = startOfDay(new Date()).getTime();
       const end = endOfDay(new Date()).getTime();
+      const accCurrency = (id: string) =>
+        state.accounts.find((a) => a.id === id)?.currency ?? "USD";
       const total = state.transactions
         .filter((t) => t.type === "expense" && t.date >= start && t.date <= end)
-        .reduce((sum, t) => sum + convertCurrency(t.amount, t.currency ?? "USD", base, rate), 0);
+        .reduce((sum, t) => sum + convertCurrency(t.amount, accCurrency(t.accountId), base, rate), 0);
       if (total <= 0) return { message: "You haven't recorded any expenses today." };
       return { message: `You spent ${fmtMoney(total, base)} today.` };
     }
