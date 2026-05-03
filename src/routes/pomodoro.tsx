@@ -19,7 +19,7 @@ export const Route = createFileRoute("/pomodoro")({
 });
 
 function PomodoroPage() {
-  const { tasks, sessions, settings, addSession, updateSettings } = useStore();
+  const { tasks, projects, sessions, settings, addSession, updateSettings } = useStore();
   const pomo = usePomodoro();
   const [, force] = useState(0);
 
@@ -45,6 +45,7 @@ function PomodoroPage() {
       if (session.duration > 5) {
         void addSession({
           taskId: session.taskId,
+          projectId: session.projectId,
           startTime: session.startedAt,
           endTime: session.endedAt,
           duration: session.duration,
@@ -114,6 +115,7 @@ function PomodoroPage() {
                 if (session.duration > 5) {
                   void addSession({
                     taskId: session.taskId,
+                    projectId: session.projectId,
                     startTime: session.startedAt,
                     endTime: session.endedAt,
                     duration: session.duration,
