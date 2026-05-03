@@ -15,11 +15,14 @@ export const Route = createFileRoute("/focus")({
 });
 
 function FocusPage() {
-  const { tasks, setTaskStatus } = useStore();
+  const { tasks, projects, setTaskStatus } = useStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [projectId, setProjectId] = useState<string>("all");
 
-  const candidates = [...tasks].filter((t) => t.status !== "done" && !t.archived).sort((a, b) => taskScore(b) - taskScore(a));
+  const candidates = [...tasks]
+    .filter((t) => t.status !== "done" && !t.archived && (projectId === "all" || t.projectId === projectId))
+    .sort((a, b) => taskScore(b) - taskScore(a));
   const current = selectedId ? tasks.find((t) => t.id === selectedId) : candidates[0];
 
   return (
