@@ -381,7 +381,47 @@ export const useStore = create<State>((set, get) => ({
     }
   },
 
-  // ============ FINANCE ============
+  materializeRecurringBlocks: async () => {
+    const blocks = get().timeBlocks;
+    const templates = blocks.filter((b) => b.recurrence && b.recurrence.freq !== "none" && !b.recurrenceParentId);
+    if (templates.length === 0) return;
+    const horizonDays = 21;
+    const today = startOfDay(new Date());
+    for (const tpl of templates) {
+      const r = tpl.recurrence as Recurrence;
+      const dur = tpl.endTime - tpl.startTime;
+      const tplStart = new Date(tpl.startTime);
+      const tplDay = startOfDay(tplStart);
+      for (let i = 1; i <= horizonDays; i++) {
+        const day = addDays(today, i);
+        if (r.until && day.getTime() > r.until) continue;
+        let shouldCreate = false;
+        if (r.freq === "daily") shouldCreate = true;
+        else if (r.freq === "weekly" && r.weekdays?.includes(day.getDay())) shouldCreate = true;
+        else if (r.freq === "custom" && r.intervalDays) {
+          const diff = Math.floor((day.getTime() - tplDay.getTime()) / 86400000);
+          shouldCreate = diff > 0 && diff % r.intervalDays === 0;
+        }
+        if (!shouldCreate) continue;
+        const newStart = new Date(day);
+        newStart.setHours(tplStart.getHours(), tplStart.getMinutes(), 0, 0);
+        const dayStr = format(day, "yyyy-MM-dd");
+        const exists = blocks.some(
+          (b) => b.recurrenceParentId === tpl.id && format(b.startTime, "yyyy-MM-dd") === dayStr
+        );
+        if (exists) continue;
+        await get().upsertBlock({
+          title: tpl.title,
+          type: tpl.type,
+          taskId: tpl.taskId,
+          notes: tpl.notes,
+          startTime: newStart.getTime(),
+          endTime: newStart.getTime() + dur,
+          recurrenceParentId: tpl.id,
+        });
+      }
+    }
+  },
   upsertAccount: async (patch) => {
     const existing = patch.id ? get().accounts.find((x) => x.id === patch.id) : undefined;
     const a: Account = {
