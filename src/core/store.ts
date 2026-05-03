@@ -235,6 +235,8 @@ export const useStore = create<State>((set, get) => ({
       type: patch.type ?? existing?.type ?? "deep",
       isCompleted: patch.isCompleted ?? existing?.isCompleted ?? false,
       notes: patch.notes ?? existing?.notes,
+      recurrence: "recurrence" in patch ? patch.recurrence : existing?.recurrence,
+      recurrenceParentId: patch.recurrenceParentId ?? existing?.recurrenceParentId,
       createdAt: existing?.createdAt ?? Date.now(),
     };
     await putOne("timeBlocks", block);
