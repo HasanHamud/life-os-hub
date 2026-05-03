@@ -5,22 +5,22 @@ export type PomodoroMode = "focus" | "break";
 interface PomodoroState {
   mode: PomodoroMode;
   running: boolean;
-  // Absolute end timestamp (ms). When running, secondsLeft is derived from this.
   endsAt: number | null;
-  // Frozen seconds left when paused / not yet started.
   remaining: number;
   totalSeconds: number;
   taskId?: string;
+  projectId?: string;
   completedRounds: number;
   startedAt: number | null;
 
   init: (focusMin: number) => void;
   setTask: (taskId?: string) => void;
+  setProject: (projectId?: string) => void;
   start: (focusMin: number, breakMin: number) => void;
   pause: () => void;
   reset: (focusMin: number, breakMin: number) => void;
   switchMode: (mode: PomodoroMode, focusMin: number, breakMin: number, longBreakMin: number, longEvery: number) => void;
-  tickComplete: (focusMin: number, breakMin: number, longBreakMin: number, longEvery: number) => { startedAt: number; endedAt: number; duration: number; mode: PomodoroMode; taskId?: string };
+  tickComplete: (focusMin: number, breakMin: number, longBreakMin: number, longEvery: number) => { startedAt: number; endedAt: number; duration: number; mode: PomodoroMode; taskId?: string; projectId?: string };
   hardReset: (focusMin: number) => void;
 }
 
