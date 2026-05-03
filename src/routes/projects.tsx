@@ -27,20 +27,29 @@ function ProjectsPage() {
   const [openProject, setOpenProject] = useState<string | null>(null);
   const [createTaskFor, setCreateTaskFor] = useState<string | null>(null);
   const [editTaskId, setEditTaskId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const open = openProject ? projects.find((p) => p.id === openProject) : null;
   const openTasks = open ? tasks.filter((t) => t.projectId === open.id && !t.parentTaskId) : [];
+  const visibleProjects = projects.filter((p) => (showArchived ? p.archived : !p.archived));
 
   return (
     <PageContainer>
       <PageHeader
         title="Projects"
         description="Initiatives that group related tasks. Each shows progress and a task tree."
-        actions={<Button onClick={() => setCreating(true)}><Plus className="h-4 w-4 mr-1" /> New Project</Button>}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowArchived(!showArchived)}>
+              {showArchived ? "Active" : "Archived"}
+            </Button>
+            <Button onClick={() => setCreating(true)}><Plus className="h-4 w-4 mr-1" /> New Project</Button>
+          </div>
+        }
       />
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {projects.map((p) => {
+        {visibleProjects.map((p) => {
           const pct = projectProgress(p.id, tasks);
           const total = tasks.filter((t) => t.projectId === p.id).length;
           const done = tasks.filter((t) => t.projectId === p.id && t.status === "done").length;
