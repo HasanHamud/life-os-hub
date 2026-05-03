@@ -34,7 +34,7 @@ const persist = (s: PomodoroState) => {
   try {
     localStorage.setItem(KEY, JSON.stringify({
       mode: s.mode, running: s.running, endsAt: s.endsAt, remaining: s.remaining,
-      totalSeconds: s.totalSeconds, taskId: s.taskId, completedRounds: s.completedRounds, startedAt: s.startedAt,
+      totalSeconds: s.totalSeconds, taskId: s.taskId, projectId: s.projectId, completedRounds: s.completedRounds, startedAt: s.startedAt,
     }));
   } catch { /* ignore */ }
 };
