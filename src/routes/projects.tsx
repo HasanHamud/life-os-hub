@@ -185,6 +185,17 @@ function ProjectDialog({
         </div>
         <DialogFooter>
           {onDelete && <Button variant="ghost" className="mr-auto text-destructive" onClick={onDelete}><Trash2 className="h-4 w-4 mr-1" />Delete</Button>}
+          {project && (
+            <Button
+              variant="outline"
+              onClick={async () => {
+                await useStore.getState().upsertProject({ id: project.id, archived: !project.archived });
+                onOpenChange(false);
+              }}
+            >
+              {project.archived ? "Unarchive" : "Archive"}
+            </Button>
+          )}
           <Button variant="outline" onClick={() => { onOpenChange(false); setName(""); }}>Cancel</Button>
           <Button onClick={async () => { await onSubmit({ name, description, color }); setName(""); }}>
             {projectId ? "Save" : "Create"}
