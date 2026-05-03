@@ -27,7 +27,7 @@ function fmtHMS(totalMs: number) {
 }
 
 function StopwatchPage() {
-  const { tasks, sessions, addSession } = useStore();
+  const { tasks, projects, sessions, addSession } = useStore();
   const sw = useStopwatch();
   const [, force] = useState(0);
 
@@ -46,6 +46,7 @@ function StopwatchPage() {
     const session = sw.stop();
     await addSession({
       taskId: session.taskId,
+      projectId: session.projectId,
       startTime: session.startedAt,
       endTime: session.endedAt,
       duration: Math.round(session.durationMs / 1000),
@@ -95,12 +96,24 @@ function StopwatchPage() {
         <aside className="space-y-4">
           <div className="rounded-xl border bg-card p-4 space-y-3">
             <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Project</div>
+              <Select value={sw.projectId ?? "none"} onValueChange={(v) => { sw.setProject(v === "none" ? undefined : v); sw.setTask(undefined); }}>
+                <SelectTrigger><SelectValue placeholder="No project" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No project</SelectItem>
+                  {projects.filter((p) => !p.archived).map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Working on</div>
               <Select value={sw.taskId ?? "none"} onValueChange={(v) => sw.setTask(v === "none" ? undefined : v)}>
                 <SelectTrigger><SelectValue placeholder="No task" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No task</SelectItem>
-                  {tasks.filter((t) => t.status !== "done").map((t) => <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>)}
+                  {tasks
+                    .filter((t) => t.status !== "done" && !t.archived && (!sw.projectId || t.projectId === sw.projectId))
+                    .map((t) => <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
