@@ -95,7 +95,7 @@ export const usePomodoro = create<PomodoroState>((set, get) => {
       const startedAt = s.startedAt ?? Date.now() - s.totalSeconds * 1000;
       const endedAt = Date.now();
       const duration = Math.round((endedAt - startedAt) / 1000);
-      const session = { startedAt, endedAt, duration, mode: s.mode, taskId: s.taskId };
+      const session = { startedAt, endedAt, duration, mode: s.mode, taskId: s.taskId, projectId: s.projectId };
 
       if (s.mode === "focus") {
         const next = s.completedRounds + 1;
