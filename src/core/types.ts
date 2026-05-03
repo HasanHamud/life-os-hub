@@ -26,6 +26,7 @@ export interface Task {
   dependsOnIds?: string[];
   recurrence?: Recurrence;
   recurrenceParentId?: string; // if generated from a recurring template
+  archived?: boolean;
   completedAt?: number;
   createdAt: number;
   updatedAt: number;
@@ -68,6 +69,7 @@ export interface Goal {
 export interface Session {
   id: string;
   taskId?: string;
+  projectId?: string;
   startTime: number;
   endTime: number;
   duration: number; // seconds

@@ -38,15 +38,19 @@ function TasksPage() {
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<TaskStatus | null>(null);
 
+  const [showArchived, setShowArchived] = useState(false);
+
   const filtered = useMemo(() => {
     return tasks.filter((t) => {
       if (t.parentTaskId) return false; // show subtasks under parents in detail
+      if (!showArchived && t.archived) return false;
+      if (showArchived && !t.archived) return false;
       if (query && !t.title.toLowerCase().includes(query.toLowerCase())) return false;
       if (tagFilter.length && !tagFilter.every((id) => t.tagIds.includes(id))) return false;
       if (projectFilter && t.projectId !== projectFilter) return false;
       return true;
     });
-  }, [tasks, query, tagFilter, projectFilter]);
+  }, [tasks, query, tagFilter, projectFilter, showArchived]);
 
   const byStatus = (status: TaskStatus) => filtered.filter((t) => t.status === status);
 
@@ -90,6 +94,15 @@ function TasksPage() {
             );
           })}
         </div>
+        <button
+          onClick={() => setShowArchived(!showArchived)}
+          className={cn(
+            "text-[11px] px-2 py-1 rounded border transition-colors",
+            showArchived ? "border-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {showArchived ? "Showing archived" : "Show archived"}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">

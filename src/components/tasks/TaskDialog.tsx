@@ -345,6 +345,18 @@ export function TaskDialog({
               <Trash2 className="h-4 w-4 mr-1" /> Delete
             </Button>
           )}
+          {existing && (
+            <Button
+              variant="outline"
+              onClick={async () => {
+                await upsertTask({ id: existing.id, archived: !existing.archived });
+                toast.success(existing.archived ? "Task unarchived" : "Task archived");
+                onOpenChange(false);
+              }}
+            >
+              {existing.archived ? "Unarchive" : "Archive"}
+            </Button>
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={submit}>{existing ? "Save" : "Create"}</Button>
         </DialogFooter>

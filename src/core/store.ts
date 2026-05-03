@@ -197,6 +197,7 @@ export const useStore = create<State>((set, get) => ({
       dependsOnIds: patch.dependsOnIds ?? existing?.dependsOnIds ?? [],
       recurrence: patch.recurrence ?? existing?.recurrence,
       recurrenceParentId: patch.recurrenceParentId ?? existing?.recurrenceParentId,
+      archived: patch.archived ?? existing?.archived ?? false,
       completedAt:
         patch.status === "done"
           ? existing?.completedAt ?? now

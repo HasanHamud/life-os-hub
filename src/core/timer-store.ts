@@ -5,22 +5,22 @@ export type PomodoroMode = "focus" | "break";
 interface PomodoroState {
   mode: PomodoroMode;
   running: boolean;
-  // Absolute end timestamp (ms). When running, secondsLeft is derived from this.
   endsAt: number | null;
-  // Frozen seconds left when paused / not yet started.
   remaining: number;
   totalSeconds: number;
   taskId?: string;
+  projectId?: string;
   completedRounds: number;
   startedAt: number | null;
 
   init: (focusMin: number) => void;
   setTask: (taskId?: string) => void;
+  setProject: (projectId?: string) => void;
   start: (focusMin: number, breakMin: number) => void;
   pause: () => void;
   reset: (focusMin: number, breakMin: number) => void;
   switchMode: (mode: PomodoroMode, focusMin: number, breakMin: number, longBreakMin: number, longEvery: number) => void;
-  tickComplete: (focusMin: number, breakMin: number, longBreakMin: number, longEvery: number) => { startedAt: number; endedAt: number; duration: number; mode: PomodoroMode; taskId?: string };
+  tickComplete: (focusMin: number, breakMin: number, longBreakMin: number, longEvery: number) => { startedAt: number; endedAt: number; duration: number; mode: PomodoroMode; taskId?: string; projectId?: string };
   hardReset: (focusMin: number) => void;
 }
 
@@ -34,7 +34,7 @@ const persist = (s: PomodoroState) => {
   try {
     localStorage.setItem(KEY, JSON.stringify({
       mode: s.mode, running: s.running, endsAt: s.endsAt, remaining: s.remaining,
-      totalSeconds: s.totalSeconds, taskId: s.taskId, completedRounds: s.completedRounds, startedAt: s.startedAt,
+      totalSeconds: s.totalSeconds, taskId: s.taskId, projectId: s.projectId, completedRounds: s.completedRounds, startedAt: s.startedAt,
     }));
   } catch { /* ignore */ }
 };
@@ -48,6 +48,7 @@ export const usePomodoro = create<PomodoroState>((set, get) => {
     remaining: saved?.remaining ?? 25 * 60,
     totalSeconds: saved?.totalSeconds ?? 25 * 60,
     taskId: saved?.taskId,
+    projectId: saved?.projectId,
     completedRounds: saved?.completedRounds ?? 0,
     startedAt: saved?.startedAt ?? null,
 
@@ -58,6 +59,7 @@ export const usePomodoro = create<PomodoroState>((set, get) => {
       set({ totalSeconds: total, remaining: total });
     },
     setTask: (taskId) => { set({ taskId }); persist(get()); },
+    setProject: (projectId) => { set({ projectId }); persist(get()); },
 
     start: (focusMin, breakMin) => {
       const s = get();
@@ -93,7 +95,7 @@ export const usePomodoro = create<PomodoroState>((set, get) => {
       const startedAt = s.startedAt ?? Date.now() - s.totalSeconds * 1000;
       const endedAt = Date.now();
       const duration = Math.round((endedAt - startedAt) / 1000);
-      const session = { startedAt, endedAt, duration, mode: s.mode, taskId: s.taskId };
+      const session = { startedAt, endedAt, duration, mode: s.mode, taskId: s.taskId, projectId: s.projectId };
 
       if (s.mode === "focus") {
         const next = s.completedRounds + 1;
@@ -118,18 +120,19 @@ export const usePomodoro = create<PomodoroState>((set, get) => {
 // ============ STOPWATCH ============
 interface StopwatchState {
   running: boolean;
-  startedAt: number | null;     // when current run started (ms)
-  accumulatedMs: number;        // ms accumulated from previous runs (paused)
+  startedAt: number | null;
+  accumulatedMs: number;
   taskId?: string;
+  projectId?: string;
   label?: string;
 
   start: () => void;
   pause: () => void;
   reset: () => void;
   setTask: (taskId?: string) => void;
+  setProject: (projectId?: string) => void;
   setLabel: (label?: string) => void;
-  // returns elapsed ms and resets the watch (for "stop & save")
-  stop: () => { startedAt: number; endedAt: number; durationMs: number; taskId?: string; label?: string };
+  stop: () => { startedAt: number; endedAt: number; durationMs: number; taskId?: string; projectId?: string; label?: string };
   getElapsedMs: () => number;
 }
 
@@ -142,7 +145,7 @@ const swPersist = (s: StopwatchState) => {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(SW_KEY, JSON.stringify({
-      running: s.running, startedAt: s.startedAt, accumulatedMs: s.accumulatedMs, taskId: s.taskId, label: s.label,
+      running: s.running, startedAt: s.startedAt, accumulatedMs: s.accumulatedMs, taskId: s.taskId, projectId: s.projectId, label: s.label,
     }));
   } catch { /* ignore */ }
 };
@@ -154,6 +157,7 @@ export const useStopwatch = create<StopwatchState>((set, get) => {
     startedAt: saved?.startedAt ?? null,
     accumulatedMs: saved?.accumulatedMs ?? 0,
     taskId: saved?.taskId,
+    projectId: saved?.projectId,
     label: saved?.label,
 
     start: () => {
@@ -174,6 +178,7 @@ export const useStopwatch = create<StopwatchState>((set, get) => {
       swPersist(get());
     },
     setTask: (taskId) => { set({ taskId }); swPersist(get()); },
+    setProject: (projectId) => { set({ projectId }); swPersist(get()); },
     setLabel: (label) => { set({ label }); swPersist(get()); },
     stop: () => {
       const s = get();
@@ -183,7 +188,7 @@ export const useStopwatch = create<StopwatchState>((set, get) => {
       const startedAt = endedAt - durationMs;
       set({ running: false, startedAt: null, accumulatedMs: 0 });
       swPersist(get());
-      return { startedAt, endedAt, durationMs, taskId: s.taskId, label: s.label };
+      return { startedAt, endedAt, durationMs, taskId: s.taskId, projectId: s.projectId, label: s.label };
     },
     getElapsedMs: () => {
       const s = get();

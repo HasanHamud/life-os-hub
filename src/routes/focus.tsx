@@ -15,20 +15,35 @@ export const Route = createFileRoute("/focus")({
 });
 
 function FocusPage() {
-  const { tasks, setTaskStatus } = useStore();
+  const { tasks, projects, setTaskStatus } = useStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [projectId, setProjectId] = useState<string>("all");
 
-  const candidates = [...tasks].filter((t) => t.status !== "done").sort((a, b) => taskScore(b) - taskScore(a));
+  const candidates = [...tasks]
+    .filter((t) => t.status !== "done" && !t.archived && (projectId === "all" || t.projectId === projectId))
+    .sort((a, b) => taskScore(b) - taskScore(a));
   const current = selectedId ? tasks.find((t) => t.id === selectedId) : candidates[0];
 
   return (
     <div className="min-h-full bg-gradient-to-br from-background via-background to-surface">
-      <div className="px-6 py-4 flex items-center justify-between">
+      <div className="px-6 py-4 flex items-center justify-between gap-3">
         <Link to="/" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
           <ArrowLeft className="h-3 w-3" /> Exit focus
         </Link>
-        <div className="text-xs text-muted-foreground">Focus Mode</div>
+        <div className="flex items-center gap-3">
+          <select
+            value={projectId}
+            onChange={(e) => { setProjectId(e.target.value); setSelectedId(null); }}
+            className="h-8 rounded-md border bg-input px-2 text-xs"
+          >
+            <option value="all">All projects</option>
+            {projects.filter((p) => !p.archived).map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <div className="text-xs text-muted-foreground">Focus Mode</div>
+        </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-6 py-16">
