@@ -78,9 +78,9 @@ function ProjectsPage() {
           );
         })}
 
-        {projects.length === 0 && (
+        {visibleProjects.length === 0 && (
           <div className="col-span-full text-center py-16 text-sm text-muted-foreground">
-            No projects yet. Click "New Project" to start.
+            {showArchived ? "No archived projects." : 'No projects yet. Click "New Project" to start.'}
           </div>
         )}
       </div>
