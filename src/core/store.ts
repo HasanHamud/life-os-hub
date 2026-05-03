@@ -175,6 +175,7 @@ export const useStore = create<State>((set, get) => ({
     });
 
     await get().materializeRecurring();
+    await get().materializeRecurringBlocks();
     await get().materializeFinanceRecurring();
   },
 
