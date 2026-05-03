@@ -48,6 +48,7 @@ export const usePomodoro = create<PomodoroState>((set, get) => {
     remaining: saved?.remaining ?? 25 * 60,
     totalSeconds: saved?.totalSeconds ?? 25 * 60,
     taskId: saved?.taskId,
+    projectId: saved?.projectId,
     completedRounds: saved?.completedRounds ?? 0,
     startedAt: saved?.startedAt ?? null,
 
@@ -58,6 +59,7 @@ export const usePomodoro = create<PomodoroState>((set, get) => {
       set({ totalSeconds: total, remaining: total });
     },
     setTask: (taskId) => { set({ taskId }); persist(get()); },
+    setProject: (projectId) => { set({ projectId }); persist(get()); },
 
     start: (focusMin, breakMin) => {
       const s = get();
