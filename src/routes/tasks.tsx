@@ -94,6 +94,15 @@ function TasksPage() {
             );
           })}
         </div>
+        <button
+          onClick={() => setShowArchived(!showArchived)}
+          className={cn(
+            "text-[11px] px-2 py-1 rounded border transition-colors",
+            showArchived ? "border-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {showArchived ? "Showing archived" : "Show archived"}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
