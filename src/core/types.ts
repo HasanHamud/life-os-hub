@@ -69,6 +69,7 @@ export interface Goal {
 export interface Session {
   id: string;
   taskId?: string;
+  projectId?: string;
   startTime: number;
   endTime: number;
   duration: number; // seconds
