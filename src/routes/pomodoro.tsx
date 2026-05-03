@@ -135,15 +135,29 @@ function PomodoroPage() {
         </div>
 
         <aside className="space-y-4">
-          <div className="rounded-xl border bg-card p-4">
-            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Focusing on</div>
-            <Select value={pomo.taskId ?? "none"} onValueChange={(v) => pomo.setTask(v === "none" ? undefined : v)}>
-              <SelectTrigger><SelectValue placeholder="No task" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No task</SelectItem>
-                {tasks.filter((t) => t.status !== "done").map((t) => <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>)}
-              </SelectContent>
-            </Select>
+          <div className="rounded-xl border bg-card p-4 space-y-3">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Project</div>
+              <Select value={pomo.projectId ?? "none"} onValueChange={(v) => { pomo.setProject(v === "none" ? undefined : v); pomo.setTask(undefined); }}>
+                <SelectTrigger><SelectValue placeholder="No project" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No project</SelectItem>
+                  {projects.filter((p) => !p.archived).map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Focusing on</div>
+              <Select value={pomo.taskId ?? "none"} onValueChange={(v) => pomo.setTask(v === "none" ? undefined : v)}>
+                <SelectTrigger><SelectValue placeholder="No task" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No task</SelectItem>
+                  {tasks
+                    .filter((t) => t.status !== "done" && !t.archived && (!pomo.projectId || t.projectId === pomo.projectId))
+                    .map((t) => <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="rounded-xl border bg-card p-4">
