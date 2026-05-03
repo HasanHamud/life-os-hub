@@ -120,18 +120,19 @@ export const usePomodoro = create<PomodoroState>((set, get) => {
 // ============ STOPWATCH ============
 interface StopwatchState {
   running: boolean;
-  startedAt: number | null;     // when current run started (ms)
-  accumulatedMs: number;        // ms accumulated from previous runs (paused)
+  startedAt: number | null;
+  accumulatedMs: number;
   taskId?: string;
+  projectId?: string;
   label?: string;
 
   start: () => void;
   pause: () => void;
   reset: () => void;
   setTask: (taskId?: string) => void;
+  setProject: (projectId?: string) => void;
   setLabel: (label?: string) => void;
-  // returns elapsed ms and resets the watch (for "stop & save")
-  stop: () => { startedAt: number; endedAt: number; durationMs: number; taskId?: string; label?: string };
+  stop: () => { startedAt: number; endedAt: number; durationMs: number; taskId?: string; projectId?: string; label?: string };
   getElapsedMs: () => number;
 }
 
@@ -144,7 +145,7 @@ const swPersist = (s: StopwatchState) => {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(SW_KEY, JSON.stringify({
-      running: s.running, startedAt: s.startedAt, accumulatedMs: s.accumulatedMs, taskId: s.taskId, label: s.label,
+      running: s.running, startedAt: s.startedAt, accumulatedMs: s.accumulatedMs, taskId: s.taskId, projectId: s.projectId, label: s.label,
     }));
   } catch { /* ignore */ }
 };
@@ -156,6 +157,7 @@ export const useStopwatch = create<StopwatchState>((set, get) => {
     startedAt: saved?.startedAt ?? null,
     accumulatedMs: saved?.accumulatedMs ?? 0,
     taskId: saved?.taskId,
+    projectId: saved?.projectId,
     label: saved?.label,
 
     start: () => {
@@ -176,6 +178,7 @@ export const useStopwatch = create<StopwatchState>((set, get) => {
       swPersist(get());
     },
     setTask: (taskId) => { set({ taskId }); swPersist(get()); },
+    setProject: (projectId) => { set({ projectId }); swPersist(get()); },
     setLabel: (label) => { set({ label }); swPersist(get()); },
     stop: () => {
       const s = get();
@@ -185,7 +188,7 @@ export const useStopwatch = create<StopwatchState>((set, get) => {
       const startedAt = endedAt - durationMs;
       set({ running: false, startedAt: null, accumulatedMs: 0 });
       swPersist(get());
-      return { startedAt, endedAt, durationMs, taskId: s.taskId, label: s.label };
+      return { startedAt, endedAt, durationMs, taskId: s.taskId, projectId: s.projectId, label: s.label };
     },
     getElapsedMs: () => {
       const s = get();
