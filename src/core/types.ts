@@ -26,6 +26,7 @@ export interface Task {
   dependsOnIds?: string[];
   recurrence?: Recurrence;
   recurrenceParentId?: string; // if generated from a recurring template
+  archived?: boolean;
   completedAt?: number;
   createdAt: number;
   updatedAt: number;
