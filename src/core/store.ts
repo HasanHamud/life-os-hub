@@ -64,6 +64,7 @@ interface State {
 
   // recurrence: ensure recurring task instances exist for the next N days
   materializeRecurring: () => Promise<void>;
+  materializeRecurringBlocks: () => Promise<void>;
 
   // ============ FINANCE ============
   upsertAccount: (a: Partial<Account> & { name?: string }) => Promise<Account>;
