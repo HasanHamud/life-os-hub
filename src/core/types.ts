@@ -40,6 +40,8 @@ export interface TimeBlock {
   type: BlockType;
   isCompleted: boolean;
   notes?: string;
+  recurrence?: Recurrence;
+  recurrenceParentId?: string;
   createdAt: number;
 }
 
