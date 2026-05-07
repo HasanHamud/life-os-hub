@@ -4,7 +4,7 @@ import {
   getAll, putOne, delOne, uid, getOne,
 } from "./db";
 import type {
-  Task, TimeBlock, Project, Goal, Session, Tag, LogEntry, Settings, TaskStatus, Recurrence,
+  Task, TimeBlock, Project, Goal, Session, Tag, LogEntry, Settings, TaskStatus, Recurrence, Note,
 } from "./types";
 import type {
   Account, Transaction, Category, Budget, SavingsGoal, FinanceRecurrence,
@@ -28,6 +28,7 @@ interface State {
   categories: Category[];
   budgets: Budget[];
   savingsGoals: SavingsGoal[];
+  notes: Note[];
 
   load: () => Promise<void>;
 
@@ -84,6 +85,12 @@ interface State {
 
   recomputeBalances: () => void;
   materializeFinanceRecurring: () => Promise<void>;
+
+  // notes
+  upsertNote: (n: Partial<Note> & { title?: string }) => Promise<Note>;
+  deleteNote: (id: string) => Promise<void>;
+  trashNote: (id: string) => Promise<void>;
+  restoreNote: (id: string) => Promise<void>;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -115,10 +122,11 @@ export const useStore = create<State>((set, get) => ({
   categories: [],
   budgets: [],
   savingsGoals: [],
+  notes: [],
 
   load: async () => {
     const [tasks, timeBlocks, projects, goals, sessions, tags, logs,
-      accounts, transactions, categories, budgets, savingsGoals] = await Promise.all([
+      accounts, transactions, categories, budgets, savingsGoals, notes] = await Promise.all([
       getAll<Task>("tasks"),
       getAll<TimeBlock>("timeBlocks"),
       getAll<Project>("projects"),
@@ -131,6 +139,7 @@ export const useStore = create<State>((set, get) => ({
       getAll<Category>("categories"),
       getAll<Budget>("budgets"),
       getAll<SavingsGoal>("savingsGoals"),
+      getAll<Note>("notes"),
     ]);
     let settings = await getOne<Settings>("settings", "global");
     if (!settings) {
@@ -151,7 +160,7 @@ export const useStore = create<State>((set, get) => ({
     }
 
     const [t2, b2, p2, g2, ses2, tg2, lg2,
-      acc2, tx2, cat2, bud2, sg2] = await Promise.all([
+      acc2, tx2, cat2, bud2, sg2, n2] = await Promise.all([
       getAll<Task>("tasks"),
       getAll<TimeBlock>("timeBlocks"),
       getAll<Project>("projects"),
@@ -164,6 +173,7 @@ export const useStore = create<State>((set, get) => ({
       getAll<Category>("categories"),
       getAll<Budget>("budgets"),
       getAll<SavingsGoal>("savingsGoals"),
+      getAll<Note>("notes"),
     ]);
 
     const accWithBalances = recomputeAccountBalances(acc2, tx2);
@@ -171,6 +181,7 @@ export const useStore = create<State>((set, get) => ({
     set({
       tasks: t2, timeBlocks: b2, projects: p2, goals: g2, sessions: ses2, tags: tg2, logs: lg2, settings,
       accounts: accWithBalances, transactions: tx2, categories: cat2, budgets: bud2, savingsGoals: sg2,
+      notes: n2,
       loaded: true,
     });
 
@@ -580,6 +591,51 @@ export const useStore = create<State>((set, get) => ({
         next = nextOccurrence(next, r);
       }
     }
+  },
+
+  upsertNote: async (patch) => {
+    const now = Date.now();
+    const existing = patch.id ? get().notes.find((x) => x.id === patch.id) : undefined;
+    const n: Note = {
+      id: existing?.id ?? uid(),
+      title: patch.title ?? existing?.title ?? "Untitled",
+      content: patch.content ?? existing?.content ?? "",
+      type: patch.type ?? existing?.type ?? "text",
+      status: patch.status ?? existing?.status ?? "active",
+      category: patch.category ?? existing?.category,
+      tagIds: patch.tagIds ?? existing?.tagIds ?? [],
+      priority: patch.priority ?? existing?.priority,
+      favorite: patch.favorite ?? existing?.favorite ?? false,
+      pinned: patch.pinned ?? existing?.pinned ?? false,
+      color: patch.color ?? existing?.color,
+      icon: patch.icon ?? existing?.icon,
+      projectId: patch.projectId ?? existing?.projectId,
+      language: patch.language ?? existing?.language,
+      attachments: patch.attachments ?? existing?.attachments ?? [],
+      isTemplate: patch.isTemplate ?? existing?.isTemplate ?? false,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+      trashedAt: patch.status === "trashed" ? (existing?.trashedAt ?? now) : (patch.status ? undefined : existing?.trashedAt),
+    };
+    await putOne("notes", n);
+    set((s) => ({
+      notes: existing ? s.notes.map((x) => (x.id === n.id ? n : x)) : [...s.notes, n],
+    }));
+    return n;
+  },
+  deleteNote: async (id) => {
+    await delOne("notes", id);
+    set((s) => ({ notes: s.notes.filter((n) => n.id !== id) }));
+  },
+  trashNote: async (id) => {
+    const n = get().notes.find((x) => x.id === id);
+    if (!n) return;
+    await get().upsertNote({ ...n, status: "trashed" });
+  },
+  restoreNote: async (id) => {
+    const n = get().notes.find((x) => x.id === id);
+    if (!n) return;
+    await get().upsertNote({ ...n, status: "active" });
   },
 }));
 

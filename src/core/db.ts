@@ -1,6 +1,6 @@
 import { openDB, type IDBPDatabase, type DBSchema } from "idb";
 import type {
-  Task, TimeBlock, Project, Goal, Session, Tag, LogEntry, Snapshot, Settings,
+  Task, TimeBlock, Project, Goal, Session, Tag, LogEntry, Snapshot, Settings, Note,
 } from "./types";
 import type {
   Account, Transaction, Category, Budget, SavingsGoal,
@@ -22,10 +22,11 @@ interface LifeOSDB extends DBSchema {
   categories: { key: string; value: Category; indexes: { byType: string } };
   budgets: { key: string; value: Budget; indexes: { byCategory: string } };
   savingsGoals: { key: string; value: SavingsGoal };
+  notes: { key: string; value: Note; indexes: { byUpdated: number; byStatus: string } };
 }
 
 const DB_NAME = "life-os";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let dbPromise: Promise<IDBPDatabase<LifeOSDB>> | null = null;
 
@@ -78,6 +79,11 @@ export function getDB() {
 
           db.createObjectStore("savingsGoals", { keyPath: "id" });
         }
+        if (oldVersion < 3) {
+          const notes = db.createObjectStore("notes", { keyPath: "id" });
+          notes.createIndex("byUpdated", "updatedAt");
+          notes.createIndex("byStatus", "status");
+        }
       },
     });
   }
@@ -87,7 +93,7 @@ export function getDB() {
 // Generic CRUD helpers
 type Stores =
   | "tasks" | "timeBlocks" | "projects" | "goals" | "sessions" | "tags" | "logs" | "snapshots" | "settings"
-  | "accounts" | "transactions" | "categories" | "budgets" | "savingsGoals";
+  | "accounts" | "transactions" | "categories" | "budgets" | "savingsGoals" | "notes";
 
 export async function getAll<T>(store: Stores): Promise<T[]> {
   const db = await getDB();
@@ -112,7 +118,7 @@ export async function delOne(store: Stores, id: string): Promise<void> {
 
 const ALL_STORES: Stores[] = [
   "tasks", "timeBlocks", "projects", "goals", "sessions", "tags", "logs", "snapshots", "settings",
-  "accounts", "transactions", "categories", "budgets", "savingsGoals",
+  "accounts", "transactions", "categories", "budgets", "savingsGoals", "notes",
 ];
 
 export async function clearAll(): Promise<void> {

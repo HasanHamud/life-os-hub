@@ -102,6 +102,42 @@ export interface Snapshot {
 
 export type Currency = "USD" | "LBP";
 
+export type NoteType =
+  | "text" | "checklist" | "code" | "idea" | "meeting" | "doc" | "sql" | "api";
+export type NoteStatus = "draft" | "active" | "archived" | "trashed";
+export type NotePriority = "low" | "med" | "high";
+
+export interface NoteAttachment {
+  id: string;
+  name: string;
+  mime: string;
+  dataUrl: string; // base64 data URL stored locally
+  size: number;
+  addedAt: number;
+}
+
+export interface Note {
+  id: string;
+  title: string;
+  content: string; // markdown
+  type: NoteType;
+  status: NoteStatus;
+  category?: string;
+  tagIds: string[];
+  priority?: NotePriority;
+  favorite?: boolean;
+  pinned?: boolean;
+  color?: string;
+  icon?: string;
+  projectId?: string;
+  language?: string; // for code/sql notes
+  attachments?: NoteAttachment[];
+  isTemplate?: boolean;
+  createdAt: number;
+  updatedAt: number;
+  trashedAt?: number;
+}
+
 export interface Settings {
   id: "global";
   pomodoroFocus: number; // minutes
