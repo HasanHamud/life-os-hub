@@ -4,7 +4,7 @@ import {
   getAll, putOne, delOne, uid, getOne,
 } from "./db";
 import type {
-  Task, TimeBlock, Project, Goal, Session, Tag, LogEntry, Settings, TaskStatus, Recurrence,
+  Task, TimeBlock, Project, Goal, Session, Tag, LogEntry, Settings, TaskStatus, Recurrence, Note,
 } from "./types";
 import type {
   Account, Transaction, Category, Budget, SavingsGoal, FinanceRecurrence,
