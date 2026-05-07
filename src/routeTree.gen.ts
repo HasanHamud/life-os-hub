@@ -16,6 +16,7 @@ import { Route as StopwatchRouteImport } from './routes/stopwatch'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as PomodoroRouteImport } from './routes/pomodoro'
+import { Route as NotesRouteImport } from './routes/notes'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as GoalsRouteImport } from './routes/goals'
 import { Route as FocusRouteImport } from './routes/focus'
@@ -64,6 +65,11 @@ const ProjectsRoute = ProjectsRouteImport.update({
 const PomodoroRoute = PomodoroRouteImport.update({
   id: '/pomodoro',
   path: '/pomodoro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotesRoute = NotesRouteImport.update({
+  id: '/notes',
+  path: '/notes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JournalRoute = JournalRouteImport.update({
@@ -145,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/focus': typeof FocusRoute
   '/goals': typeof GoalsRoute
   '/journal': typeof JournalRoute
+  '/notes': typeof NotesRoute
   '/pomodoro': typeof PomodoroRoute
   '/projects': typeof ProjectsRoute
   '/settings': typeof SettingsRoute
@@ -167,6 +174,7 @@ export interface FileRoutesByTo {
   '/focus': typeof FocusRoute
   '/goals': typeof GoalsRoute
   '/journal': typeof JournalRoute
+  '/notes': typeof NotesRoute
   '/pomodoro': typeof PomodoroRoute
   '/projects': typeof ProjectsRoute
   '/settings': typeof SettingsRoute
@@ -191,6 +199,7 @@ export interface FileRoutesById {
   '/focus': typeof FocusRoute
   '/goals': typeof GoalsRoute
   '/journal': typeof JournalRoute
+  '/notes': typeof NotesRoute
   '/pomodoro': typeof PomodoroRoute
   '/projects': typeof ProjectsRoute
   '/settings': typeof SettingsRoute
@@ -216,6 +225,7 @@ export interface FileRouteTypes {
     | '/focus'
     | '/goals'
     | '/journal'
+    | '/notes'
     | '/pomodoro'
     | '/projects'
     | '/settings'
@@ -238,6 +248,7 @@ export interface FileRouteTypes {
     | '/focus'
     | '/goals'
     | '/journal'
+    | '/notes'
     | '/pomodoro'
     | '/projects'
     | '/settings'
@@ -261,6 +272,7 @@ export interface FileRouteTypes {
     | '/focus'
     | '/goals'
     | '/journal'
+    | '/notes'
     | '/pomodoro'
     | '/projects'
     | '/settings'
@@ -285,6 +297,7 @@ export interface RootRouteChildren {
   FocusRoute: typeof FocusRoute
   GoalsRoute: typeof GoalsRoute
   JournalRoute: typeof JournalRoute
+  NotesRoute: typeof NotesRoute
   PomodoroRoute: typeof PomodoroRoute
   ProjectsRoute: typeof ProjectsRoute
   SettingsRoute: typeof SettingsRoute
@@ -343,6 +356,13 @@ declare module '@tanstack/react-router' {
       path: '/pomodoro'
       fullPath: '/pomodoro'
       preLoaderRoute: typeof PomodoroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notes': {
+      id: '/notes'
+      path: '/notes'
+      fullPath: '/notes'
+      preLoaderRoute: typeof NotesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/journal': {
@@ -477,6 +497,7 @@ const rootRouteChildren: RootRouteChildren = {
   FocusRoute: FocusRoute,
   GoalsRoute: GoalsRoute,
   JournalRoute: JournalRoute,
+  NotesRoute: NotesRoute,
   PomodoroRoute: PomodoroRoute,
   ProjectsRoute: ProjectsRoute,
   SettingsRoute: SettingsRoute,
