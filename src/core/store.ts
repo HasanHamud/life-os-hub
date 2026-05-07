@@ -126,7 +126,7 @@ export const useStore = create<State>((set, get) => ({
 
   load: async () => {
     const [tasks, timeBlocks, projects, goals, sessions, tags, logs,
-      accounts, transactions, categories, budgets, savingsGoals] = await Promise.all([
+      accounts, transactions, categories, budgets, savingsGoals, notes] = await Promise.all([
       getAll<Task>("tasks"),
       getAll<TimeBlock>("timeBlocks"),
       getAll<Project>("projects"),
@@ -139,6 +139,7 @@ export const useStore = create<State>((set, get) => ({
       getAll<Category>("categories"),
       getAll<Budget>("budgets"),
       getAll<SavingsGoal>("savingsGoals"),
+      getAll<Note>("notes"),
     ]);
     let settings = await getOne<Settings>("settings", "global");
     if (!settings) {
@@ -159,7 +160,7 @@ export const useStore = create<State>((set, get) => ({
     }
 
     const [t2, b2, p2, g2, ses2, tg2, lg2,
-      acc2, tx2, cat2, bud2, sg2] = await Promise.all([
+      acc2, tx2, cat2, bud2, sg2, n2] = await Promise.all([
       getAll<Task>("tasks"),
       getAll<TimeBlock>("timeBlocks"),
       getAll<Project>("projects"),
@@ -172,6 +173,7 @@ export const useStore = create<State>((set, get) => ({
       getAll<Category>("categories"),
       getAll<Budget>("budgets"),
       getAll<SavingsGoal>("savingsGoals"),
+      getAll<Note>("notes"),
     ]);
 
     const accWithBalances = recomputeAccountBalances(acc2, tx2);
@@ -179,6 +181,7 @@ export const useStore = create<State>((set, get) => ({
     set({
       tasks: t2, timeBlocks: b2, projects: p2, goals: g2, sessions: ses2, tags: tg2, logs: lg2, settings,
       accounts: accWithBalances, transactions: tx2, categories: cat2, budgets: bud2, savingsGoals: sg2,
+      notes: n2,
       loaded: true,
     });
 
