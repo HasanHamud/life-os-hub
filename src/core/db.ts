@@ -118,7 +118,7 @@ export async function delOne(store: Stores, id: string): Promise<void> {
 
 const ALL_STORES: Stores[] = [
   "tasks", "timeBlocks", "projects", "goals", "sessions", "tags", "logs", "snapshots", "settings",
-  "accounts", "transactions", "categories", "budgets", "savingsGoals",
+  "accounts", "transactions", "categories", "budgets", "savingsGoals", "notes",
 ];
 
 export async function clearAll(): Promise<void> {
