@@ -592,6 +592,51 @@ export const useStore = create<State>((set, get) => ({
       }
     }
   },
+
+  upsertNote: async (patch) => {
+    const now = Date.now();
+    const existing = patch.id ? get().notes.find((x) => x.id === patch.id) : undefined;
+    const n: Note = {
+      id: existing?.id ?? uid(),
+      title: patch.title ?? existing?.title ?? "Untitled",
+      content: patch.content ?? existing?.content ?? "",
+      type: patch.type ?? existing?.type ?? "text",
+      status: patch.status ?? existing?.status ?? "active",
+      category: patch.category ?? existing?.category,
+      tagIds: patch.tagIds ?? existing?.tagIds ?? [],
+      priority: patch.priority ?? existing?.priority,
+      favorite: patch.favorite ?? existing?.favorite ?? false,
+      pinned: patch.pinned ?? existing?.pinned ?? false,
+      color: patch.color ?? existing?.color,
+      icon: patch.icon ?? existing?.icon,
+      projectId: patch.projectId ?? existing?.projectId,
+      language: patch.language ?? existing?.language,
+      attachments: patch.attachments ?? existing?.attachments ?? [],
+      isTemplate: patch.isTemplate ?? existing?.isTemplate ?? false,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+      trashedAt: patch.status === "trashed" ? (existing?.trashedAt ?? now) : (patch.status ? undefined : existing?.trashedAt),
+    };
+    await putOne("notes", n);
+    set((s) => ({
+      notes: existing ? s.notes.map((x) => (x.id === n.id ? n : x)) : [...s.notes, n],
+    }));
+    return n;
+  },
+  deleteNote: async (id) => {
+    await delOne("notes", id);
+    set((s) => ({ notes: s.notes.filter((n) => n.id !== id) }));
+  },
+  trashNote: async (id) => {
+    const n = get().notes.find((x) => x.id === id);
+    if (!n) return;
+    await get().upsertNote({ ...n, status: "trashed" });
+  },
+  restoreNote: async (id) => {
+    const n = get().notes.find((x) => x.id === id);
+    if (!n) return;
+    await get().upsertNote({ ...n, status: "active" });
+  },
 }));
 
 function nextOccurrence(from: number, r: FinanceRecurrence): number {
