@@ -122,6 +122,7 @@ export const useStore = create<State>((set, get) => ({
   categories: [],
   budgets: [],
   savingsGoals: [],
+  notes: [],
 
   load: async () => {
     const [tasks, timeBlocks, projects, goals, sessions, tags, logs,
