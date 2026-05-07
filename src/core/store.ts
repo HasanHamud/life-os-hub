@@ -28,6 +28,7 @@ interface State {
   categories: Category[];
   budgets: Budget[];
   savingsGoals: SavingsGoal[];
+  notes: Note[];
 
   load: () => Promise<void>;
 
