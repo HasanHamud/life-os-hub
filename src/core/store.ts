@@ -85,6 +85,12 @@ interface State {
 
   recomputeBalances: () => void;
   materializeFinanceRecurring: () => Promise<void>;
+
+  // notes
+  upsertNote: (n: Partial<Note> & { title?: string }) => Promise<Note>;
+  deleteNote: (id: string) => Promise<void>;
+  trashNote: (id: string) => Promise<void>;
+  restoreNote: (id: string) => Promise<void>;
 }
 
 const DEFAULT_SETTINGS: Settings = {
