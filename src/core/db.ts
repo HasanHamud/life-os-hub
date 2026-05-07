@@ -79,6 +79,11 @@ export function getDB() {
 
           db.createObjectStore("savingsGoals", { keyPath: "id" });
         }
+        if (oldVersion < 3) {
+          const notes = db.createObjectStore("notes", { keyPath: "id" });
+          notes.createIndex("byUpdated", "updatedAt");
+          notes.createIndex("byStatus", "status");
+        }
       },
     });
   }
@@ -88,7 +93,7 @@ export function getDB() {
 // Generic CRUD helpers
 type Stores =
   | "tasks" | "timeBlocks" | "projects" | "goals" | "sessions" | "tags" | "logs" | "snapshots" | "settings"
-  | "accounts" | "transactions" | "categories" | "budgets" | "savingsGoals";
+  | "accounts" | "transactions" | "categories" | "budgets" | "savingsGoals" | "notes";
 
 export async function getAll<T>(store: Stores): Promise<T[]> {
   const db = await getDB();
