@@ -39,6 +39,12 @@ function TasksPage() {
   const [dragOver, setDragOver] = useState<TaskStatus | null>(null);
 
   const [showArchived, setShowArchived] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
+
+  const allCategories = useMemo(
+    () => Array.from(new Set(projects.map((p) => p.category).filter(Boolean) as string[])),
+    [projects],
+  );
 
   const filtered = useMemo(() => {
     return tasks.filter((t) => {
@@ -48,9 +54,13 @@ function TasksPage() {
       if (query && !t.title.toLowerCase().includes(query.toLowerCase())) return false;
       if (tagFilter.length && !tagFilter.every((id) => t.tagIds.includes(id))) return false;
       if (projectFilter && t.projectId !== projectFilter) return false;
+      if (categoryFilter) {
+        const proj = t.projectId ? projects.find((p) => p.id === t.projectId) : undefined;
+        if (!proj || (proj.category ?? "") !== categoryFilter) return false;
+      }
       return true;
     });
-  }, [tasks, query, tagFilter, projectFilter, showArchived]);
+  }, [tasks, query, tagFilter, projectFilter, showArchived, categoryFilter, projects]);
 
   const byStatus = (status: TaskStatus) => filtered.filter((t) => t.status === status);
 
