@@ -58,6 +58,24 @@ function ProjectsPage() {
         }
       />
 
+      <div className="flex flex-wrap items-center gap-1.5 mb-4">
+        <button onClick={() => setCategoryFilter("")}
+          className={cn("text-[11px] px-2.5 py-1 rounded-full border transition-colors",
+            categoryFilter === "" ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground")}>
+          All
+        </button>
+        {allCategories.map((c) => {
+          const on = categoryFilter === c;
+          return (
+            <button key={c} onClick={() => setCategoryFilter(on ? "" : c)}
+              className={cn("text-[11px] px-2.5 py-1 rounded-full border transition-colors",
+                on ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground")}>
+              {c}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {visibleProjects.map((p) => {
           const pct = projectProgress(p.id, tasks);
