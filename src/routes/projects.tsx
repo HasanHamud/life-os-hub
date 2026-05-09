@@ -93,6 +93,11 @@ function ProjectsPage() {
                   className="text-xs text-muted-foreground hover:text-foreground">Edit</button>
               </div>
               <div className="text-base font-semibold mb-1">{p.name}</div>
+              {p.category && (
+                <div className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded border border-border text-muted-foreground mb-2">
+                  {p.category}
+                </div>
+              )}
               {p.description && <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{p.description}</p>}
               <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1.5">
                 <span>{done} / {total} tasks</span>
