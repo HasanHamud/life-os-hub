@@ -51,6 +51,10 @@ interface State {
 
   // sessions
   addSession: (s: Omit<Session, "id">) => Promise<Session>;
+  updateSession: (id: string, patch: Partial<Session>) => Promise<void>;
+  deleteSession: (id: string) => Promise<void>;
+  adjustDayFocus: (date: Date, deltaMinutes: number, note?: string) => Promise<void>;
+  setDayFocus: (date: Date, totalMinutes: number) => Promise<void>;
 
   // tags
   upsertTag: (t: Partial<Tag> & { name?: string }) => Promise<Tag>;
