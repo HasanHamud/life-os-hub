@@ -263,7 +263,7 @@ function ProjectDialog({
             </Button>
           )}
           <Button variant="outline" onClick={() => { onOpenChange(false); setName(""); }}>Cancel</Button>
-          <Button onClick={async () => { await onSubmit({ name, description, color }); setName(""); }}>
+          <Button onClick={async () => { await onSubmit({ name, description, color, category: category || undefined }); setName(""); setCategory(""); setCustomCat(""); }}>
             {projectId ? "Save" : "Create"}
           </Button>
         </DialogFooter>
