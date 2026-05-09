@@ -11,6 +11,8 @@ import { projectProgress, fmt } from "@/core/utils";
 import { TaskRow } from "@/components/tasks/TaskCard";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { Plus, FolderKanban, Trash2 } from "lucide-react";
+import { PROJECT_CATEGORY_PRESETS } from "@/core/types";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/projects")({
   head: () => ({ meta: [
@@ -28,10 +30,18 @@ function ProjectsPage() {
   const [createTaskFor, setCreateTaskFor] = useState<string | null>(null);
   const [editTaskId, setEditTaskId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
 
   const open = openProject ? projects.find((p) => p.id === openProject) : null;
   const openTasks = open ? tasks.filter((t) => t.projectId === open.id && !t.parentTaskId) : [];
-  const visibleProjects = projects.filter((p) => (showArchived ? p.archived : !p.archived));
+  const allCategories = Array.from(
+    new Set([...PROJECT_CATEGORY_PRESETS, ...projects.map((p) => p.category).filter(Boolean) as string[]]),
+  );
+  const visibleProjects = projects.filter((p) => {
+    if (showArchived ? !p.archived : p.archived) return false;
+    if (categoryFilter && (p.category ?? "") !== categoryFilter) return false;
+    return true;
+  });
 
   return (
     <PageContainer>
@@ -47,6 +57,24 @@ function ProjectsPage() {
           </div>
         }
       />
+
+      <div className="flex flex-wrap items-center gap-1.5 mb-4">
+        <button onClick={() => setCategoryFilter("")}
+          className={cn("text-[11px] px-2.5 py-1 rounded-full border transition-colors",
+            categoryFilter === "" ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground")}>
+          All
+        </button>
+        {allCategories.map((c) => {
+          const on = categoryFilter === c;
+          return (
+            <button key={c} onClick={() => setCategoryFilter(on ? "" : c)}
+              className={cn("text-[11px] px-2.5 py-1 rounded-full border transition-colors",
+                on ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground")}>
+              {c}
+            </button>
+          );
+        })}
+      </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {visibleProjects.map((p) => {
@@ -65,6 +93,11 @@ function ProjectsPage() {
                   className="text-xs text-muted-foreground hover:text-foreground">Edit</button>
               </div>
               <div className="text-base font-semibold mb-1">{p.name}</div>
+              {p.category && (
+                <div className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded border border-border text-muted-foreground mb-2">
+                  {p.category}
+                </div>
+              )}
               {p.description && <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{p.description}</p>}
               <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1.5">
                 <span>{done} / {total} tasks</span>
@@ -142,19 +175,22 @@ function ProjectDialog({
   open, onOpenChange, projectId, onSubmit, onDelete,
 }: {
   open: boolean; onOpenChange: (v: boolean) => void; projectId: string | null;
-  onSubmit: (d: { name: string; description?: string; color?: string }) => Promise<void>;
+  onSubmit: (d: { name: string; description?: string; color?: string; category?: string }) => Promise<void>;
   onDelete?: () => Promise<void>;
 }) {
   const project = useStore((s) => projectId ? s.projects.find((p) => p.id === projectId) : undefined);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("#d4a574");
+  const [category, setCategory] = useState<string>("");
+  const [customCat, setCustomCat] = useState("");
 
   useState(() => {
     if (open) {
       setName(project?.name ?? "");
       setDescription(project?.description ?? "");
       setColor(project?.color ?? "#d4a574");
+      setCategory(project?.category ?? "");
     }
   });
 
@@ -163,7 +199,10 @@ function ProjectDialog({
     setName(project.name);
     setDescription(project.description ?? "");
     setColor(project.color ?? "#d4a574");
+    setCategory(project.category ?? "");
   }
+
+  const isPreset = !category || (PROJECT_CATEGORY_PRESETS as readonly string[]).includes(category);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -172,6 +211,33 @@ function ProjectDialog({
         <div className="space-y-3">
           <div><Label className="text-xs">Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} autoFocus /></div>
           <div><Label className="text-xs">Description</Label><Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
+          <div>
+            <Label className="text-xs">Category</Label>
+            <div className="flex flex-wrap gap-1.5 mt-1">
+              {PROJECT_CATEGORY_PRESETS.map((c) => (
+                <button key={c} type="button" onClick={() => { setCategory(c); setCustomCat(""); }}
+                  className={cn("text-[11px] px-2.5 py-1 rounded-full border transition-colors",
+                    category === c ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground")}>
+                  {c}
+                </button>
+              ))}
+              <button type="button" onClick={() => { setCategory(customCat || "custom"); }}
+                className={cn("text-[11px] px-2.5 py-1 rounded-full border transition-colors",
+                  !isPreset ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground")}>
+                Custom
+              </button>
+              <button type="button" onClick={() => { setCategory(""); setCustomCat(""); }}
+                className={cn("text-[11px] px-2.5 py-1 rounded-full border transition-colors",
+                  category === "" ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground")}>
+                None
+              </button>
+            </div>
+            {!isPreset && (
+              <Input className="mt-2" placeholder="Custom category name"
+                value={customCat || category}
+                onChange={(e) => { setCustomCat(e.target.value); setCategory(e.target.value); }} />
+            )}
+          </div>
           <div><Label className="text-xs">Color</Label>
             <div className="flex gap-2 mt-1">
               {["#d4a574", "#90b890", "#90b8c8", "#c890b8", "#c8a890", "#a8c888"].map((c) => (
@@ -197,7 +263,7 @@ function ProjectDialog({
             </Button>
           )}
           <Button variant="outline" onClick={() => { onOpenChange(false); setName(""); }}>Cancel</Button>
-          <Button onClick={async () => { await onSubmit({ name, description, color }); setName(""); }}>
+          <Button onClick={async () => { await onSubmit({ name, description, color, category: category || undefined }); setName(""); setCategory(""); setCustomCat(""); }}>
             {projectId ? "Save" : "Create"}
           </Button>
         </DialogFooter>

@@ -271,6 +271,7 @@ export const useStore = create<State>((set, get) => ({
       name: patch.name ?? existing?.name ?? "Untitled Project",
       description: patch.description ?? existing?.description,
       color: patch.color ?? existing?.color ?? "#d4a574",
+      category: patch.category ?? existing?.category,
       archived: patch.archived ?? existing?.archived ?? false,
       createdAt: existing?.createdAt ?? Date.now(),
     };

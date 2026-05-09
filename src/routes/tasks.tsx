@@ -39,6 +39,12 @@ function TasksPage() {
   const [dragOver, setDragOver] = useState<TaskStatus | null>(null);
 
   const [showArchived, setShowArchived] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
+
+  const allCategories = useMemo(
+    () => Array.from(new Set(projects.map((p) => p.category).filter(Boolean) as string[])),
+    [projects],
+  );
 
   const filtered = useMemo(() => {
     return tasks.filter((t) => {
@@ -48,9 +54,13 @@ function TasksPage() {
       if (query && !t.title.toLowerCase().includes(query.toLowerCase())) return false;
       if (tagFilter.length && !tagFilter.every((id) => t.tagIds.includes(id))) return false;
       if (projectFilter && t.projectId !== projectFilter) return false;
+      if (categoryFilter) {
+        const proj = t.projectId ? projects.find((p) => p.id === t.projectId) : undefined;
+        if (!proj || (proj.category ?? "") !== categoryFilter) return false;
+      }
       return true;
     });
-  }, [tasks, query, tagFilter, projectFilter, showArchived]);
+  }, [tasks, query, tagFilter, projectFilter, showArchived, categoryFilter, projects]);
 
   const byStatus = (status: TaskStatus) => filtered.filter((t) => t.status === status);
 
@@ -79,6 +89,11 @@ function TasksPage() {
           className="h-9 rounded-md border bg-input px-3 text-sm">
           <option value="">All projects</option>
           {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
+          className="h-9 rounded-md border bg-input px-3 text-sm">
+          <option value="">All categories</option>
+          {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
         <div className="flex flex-wrap gap-1">
           {tags.map((t) => {

@@ -46,11 +46,14 @@ export interface TimeBlock {
   createdAt: number;
 }
 
+export const PROJECT_CATEGORY_PRESETS = ["Work", "Freelance", "Personal"] as const;
+
 export interface Project {
   id: string;
   name: string;
   description?: string;
   color?: string;
+  category?: string; // "Work" | "Freelance" | "Personal" | custom
   archived?: boolean;
   createdAt: number;
 }
