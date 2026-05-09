@@ -20,6 +20,7 @@ export const Route = createFileRoute("/projects")({
     { name: "description", content: "Group tasks under projects, track progress and feature breakdown." },
   ]}),
   component: ProjectsPage,
+});
 
 function ProjectsPage() {
   const { projects, tasks, upsertProject, deleteProject } = useStore();
