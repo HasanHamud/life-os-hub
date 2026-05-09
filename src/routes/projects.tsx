@@ -11,8 +11,16 @@ import { projectProgress, fmt } from "@/core/utils";
 import { TaskRow } from "@/components/tasks/TaskCard";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { Plus, FolderKanban, Trash2 } from "lucide-react";
+import { PROJECT_CATEGORY_PRESETS } from "@/core/types";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/projects")({
+  head: () => ({ meta: [
+    { title: "Projects — Life OS" },
+    { name: "description", content: "Group tasks under projects, track progress and feature breakdown." },
+  ]}),
+  component: ProjectsPage,
+});
   head: () => ({ meta: [
     { title: "Projects — Life OS" },
     { name: "description", content: "Group tasks under projects, track progress and feature breakdown." },
