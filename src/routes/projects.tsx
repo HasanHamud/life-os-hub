@@ -175,19 +175,22 @@ function ProjectDialog({
   open, onOpenChange, projectId, onSubmit, onDelete,
 }: {
   open: boolean; onOpenChange: (v: boolean) => void; projectId: string | null;
-  onSubmit: (d: { name: string; description?: string; color?: string }) => Promise<void>;
+  onSubmit: (d: { name: string; description?: string; color?: string; category?: string }) => Promise<void>;
   onDelete?: () => Promise<void>;
 }) {
   const project = useStore((s) => projectId ? s.projects.find((p) => p.id === projectId) : undefined);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("#d4a574");
+  const [category, setCategory] = useState<string>("");
+  const [customCat, setCustomCat] = useState("");
 
   useState(() => {
     if (open) {
       setName(project?.name ?? "");
       setDescription(project?.description ?? "");
       setColor(project?.color ?? "#d4a574");
+      setCategory(project?.category ?? "");
     }
   });
 
@@ -196,7 +199,10 @@ function ProjectDialog({
     setName(project.name);
     setDescription(project.description ?? "");
     setColor(project.color ?? "#d4a574");
+    setCategory(project.category ?? "");
   }
+
+  const isPreset = !category || (PROJECT_CATEGORY_PRESETS as readonly string[]).includes(category);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -205,6 +211,33 @@ function ProjectDialog({
         <div className="space-y-3">
           <div><Label className="text-xs">Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} autoFocus /></div>
           <div><Label className="text-xs">Description</Label><Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
+          <div>
+            <Label className="text-xs">Category</Label>
+            <div className="flex flex-wrap gap-1.5 mt-1">
+              {PROJECT_CATEGORY_PRESETS.map((c) => (
+                <button key={c} type="button" onClick={() => { setCategory(c); setCustomCat(""); }}
+                  className={cn("text-[11px] px-2.5 py-1 rounded-full border transition-colors",
+                    category === c ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground")}>
+                  {c}
+                </button>
+              ))}
+              <button type="button" onClick={() => { setCategory(customCat || "custom"); }}
+                className={cn("text-[11px] px-2.5 py-1 rounded-full border transition-colors",
+                  !isPreset ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground")}>
+                Custom
+              </button>
+              <button type="button" onClick={() => { setCategory(""); setCustomCat(""); }}
+                className={cn("text-[11px] px-2.5 py-1 rounded-full border transition-colors",
+                  category === "" ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground")}>
+                None
+              </button>
+            </div>
+            {!isPreset && (
+              <Input className="mt-2" placeholder="Custom category name"
+                value={customCat || category}
+                onChange={(e) => { setCustomCat(e.target.value); setCategory(e.target.value); }} />
+            )}
+          </div>
           <div><Label className="text-xs">Color</Label>
             <div className="flex gap-2 mt-1">
               {["#d4a574", "#90b890", "#90b8c8", "#c890b8", "#c8a890", "#a8c888"].map((c) => (
