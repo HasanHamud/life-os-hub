@@ -318,7 +318,47 @@ export const useStore = create<State>((set, get) => ({
     return ses;
   },
 
-  upsertTag: async (patch) => {
+  updateSession: async (id, patch) => {
+    const cur = get().sessions.find((x) => x.id === id);
+    if (!cur) return;
+    const next: Session = { ...cur, ...patch, id: cur.id };
+    await putOne("sessions", next);
+    set((st) => ({ sessions: st.sessions.map((x) => (x.id === id ? next : x)) }));
+  },
+
+  deleteSession: async (id) => {
+    await delOne("sessions", id);
+    set((st) => ({ sessions: st.sessions.filter((x) => x.id !== id) }));
+  },
+
+  adjustDayFocus: async (date, deltaMinutes, note) => {
+    if (!deltaMinutes) return;
+    const noon = new Date(date);
+    noon.setHours(12, 0, 0, 0);
+    const ts = noon.getTime();
+    const ses: Session = {
+      id: uid(),
+      startTime: ts,
+      endTime: ts + Math.round(deltaMinutes * 60_000),
+      duration: Math.round(deltaMinutes * 60),
+      type: "focus",
+      notes: note ?? "__adjustment",
+    };
+    await putOne("sessions", ses);
+    set((st) => ({ sessions: [...st.sessions, ses] }));
+  },
+
+  setDayFocus: async (date, totalMinutes) => {
+    const s = startOfDay(date).getTime();
+    const e = s + 86_399_999;
+    const current = get().sessions.filter(
+      (x) => x.type === "focus" && x.startTime >= s && x.startTime <= e
+    );
+    const currentMin = current.reduce((a, x) => a + x.duration, 0) / 60;
+    const delta = totalMinutes - currentMin;
+    if (Math.abs(delta) < 0.01) return;
+    await get().adjustDayFocus(date, delta, "__adjustment");
+  },
     const existing = patch.id ? get().tags.find((x) => x.id === patch.id) : undefined;
     const t: Tag = {
       id: existing?.id ?? uid(),
