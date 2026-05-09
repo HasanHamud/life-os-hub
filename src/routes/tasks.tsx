@@ -90,6 +90,11 @@ function TasksPage() {
           <option value="">All projects</option>
           {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
+        <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
+          className="h-9 rounded-md border bg-input px-3 text-sm">
+          <option value="">All categories</option>
+          {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
         <div className="flex flex-wrap gap-1">
           {tags.map((t) => {
             const on = tagFilter.includes(t.id);
