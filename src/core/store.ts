@@ -51,6 +51,10 @@ interface State {
 
   // sessions
   addSession: (s: Omit<Session, "id">) => Promise<Session>;
+  updateSession: (id: string, patch: Partial<Session>) => Promise<void>;
+  deleteSession: (id: string) => Promise<void>;
+  adjustDayFocus: (date: Date, deltaMinutes: number, note?: string) => Promise<void>;
+  setDayFocus: (date: Date, totalMinutes: number) => Promise<void>;
 
   // tags
   upsertTag: (t: Partial<Tag> & { name?: string }) => Promise<Tag>;
@@ -312,6 +316,48 @@ export const useStore = create<State>((set, get) => ({
     await putOne("sessions", ses);
     set((st) => ({ sessions: [...st.sessions, ses] }));
     return ses;
+  },
+
+  updateSession: async (id, patch) => {
+    const cur = get().sessions.find((x) => x.id === id);
+    if (!cur) return;
+    const next: Session = { ...cur, ...patch, id: cur.id };
+    await putOne("sessions", next);
+    set((st) => ({ sessions: st.sessions.map((x) => (x.id === id ? next : x)) }));
+  },
+
+  deleteSession: async (id) => {
+    await delOne("sessions", id);
+    set((st) => ({ sessions: st.sessions.filter((x) => x.id !== id) }));
+  },
+
+  adjustDayFocus: async (date, deltaMinutes, note) => {
+    if (!deltaMinutes) return;
+    const noon = new Date(date);
+    noon.setHours(12, 0, 0, 0);
+    const ts = noon.getTime();
+    const ses: Session = {
+      id: uid(),
+      startTime: ts,
+      endTime: ts + Math.round(deltaMinutes * 60_000),
+      duration: Math.round(deltaMinutes * 60),
+      type: "focus",
+      notes: note ?? "__adjustment",
+    };
+    await putOne("sessions", ses);
+    set((st) => ({ sessions: [...st.sessions, ses] }));
+  },
+
+  setDayFocus: async (date, totalMinutes) => {
+    const s = startOfDay(date).getTime();
+    const e = s + 86_399_999;
+    const current = get().sessions.filter(
+      (x) => x.type === "focus" && x.startTime >= s && x.startTime <= e
+    );
+    const currentMin = current.reduce((a, x) => a + x.duration, 0) / 60;
+    const delta = totalMinutes - currentMin;
+    if (Math.abs(delta) < 0.01) return;
+    await get().adjustDayFocus(date, delta, "__adjustment");
   },
 
   upsertTag: async (patch) => {

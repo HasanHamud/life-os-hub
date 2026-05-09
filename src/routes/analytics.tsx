@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useStore } from "@/core/store";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { eachDayOfInterval, subDays, format, isSameDay, startOfDay, endOfDay } from "date-fns";
@@ -8,6 +8,11 @@ import {
   LineChart, Line, PieChart, Pie, Cell,
 } from "recharts";
 import { fmt } from "@/core/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { Plus, Minus, Trash2, Pencil } from "lucide-react";
 
 export const Route = createFileRoute("/analytics")({
   head: () => ({ meta: [
@@ -125,12 +130,140 @@ function AnalyticsPage() {
         </ChartCard>
       </div>
 
+      <FocusAdjuster />
+
       <div className="grid md:grid-cols-3 gap-4 mt-6">
         <Summary title="Daily summary" range="today" />
         <Summary title="Weekly summary" range="week" />
         <Summary title="Monthly summary" range="month" />
       </div>
     </PageContainer>
+  );
+}
+
+function FocusAdjuster() {
+  const { sessions, adjustDayFocus, setDayFocus, deleteSession, updateSession } = useStore();
+  const [date, setDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
+  const [delta, setDelta] = useState<string>("15");
+  const [target, setTarget] = useState<string>("");
+
+  const day = useMemo(() => {
+    const [y, m, d] = date.split("-").map(Number);
+    return new Date(y, (m ?? 1) - 1, d ?? 1);
+  }, [date]);
+
+  const dayStart = startOfDay(day).getTime();
+  const dayEnd = endOfDay(day).getTime();
+  const daySessions = sessions
+    .filter((s) => s.type === "focus" && s.startTime >= dayStart && s.startTime <= dayEnd)
+    .sort((a, b) => a.startTime - b.startTime);
+  const totalMin = Math.round(daySessions.reduce((a, s) => a + s.duration, 0) / 60);
+
+  const apply = async (sign: 1 | -1) => {
+    const n = Number(delta);
+    if (!n || isNaN(n)) return;
+    await adjustDayFocus(day, sign * Math.abs(n));
+    toast.success(`${sign > 0 ? "Added" : "Removed"} ${Math.abs(n)}m on ${format(day, "MMM d")}`);
+  };
+
+  const setTotal = async () => {
+    const n = Number(target);
+    if (isNaN(n) || n < 0) { toast.error("Enter a non-negative number"); return; }
+    await setDayFocus(day, n);
+    setTarget("");
+    toast.success(`Set ${format(day, "MMM d")} focus to ${fmt.duration(n)}`);
+  };
+
+  const editEntry = async (id: string, currentMin: number) => {
+    const v = window.prompt("Set duration in minutes (negative allowed):", String(currentMin));
+    if (v == null) return;
+    const n = Number(v);
+    if (isNaN(n)) { toast.error("Invalid number"); return; }
+    const seconds = Math.round(n * 60);
+    const ses = sessions.find((s) => s.id === id);
+    if (!ses) return;
+    await updateSession(id, { duration: seconds, endTime: ses.startTime + seconds * 1000 });
+    toast.success("Updated");
+  };
+
+  return (
+    <div className="rounded-xl border bg-card p-4 mt-6">
+      <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+        <div>
+          <div className="text-sm font-semibold">Adjust focus time for a day</div>
+          <div className="text-[11px] text-muted-foreground">Add, subtract, or override the total minutes tracked on any day.</div>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Current total: <span className="font-medium tabular-nums text-foreground">{fmt.duration(totalMin)}</span>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs">Date</Label>
+          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Adjust by (minutes)</Label>
+          <div className="flex gap-2">
+            <Input type="number" min={1} value={delta} onChange={(e) => setDelta(e.target.value)} />
+            <Button variant="outline" size="icon" onClick={() => apply(-1)} title="Subtract">
+              <Minus className="h-4 w-4" />
+            </Button>
+            <Button size="icon" onClick={() => apply(1)} title="Add">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Or set total to (minutes)</Label>
+          <div className="flex gap-2">
+            <Input
+              type="number" min={0} placeholder={String(totalMin)}
+              value={target} onChange={(e) => setTarget(e.target.value)}
+            />
+            <Button variant="outline" onClick={setTotal}>Set</Button>
+          </div>
+        </div>
+      </div>
+
+      {daySessions.length > 0 && (
+        <div className="mt-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+            Sessions on {format(day, "EEE, MMM d")}
+          </div>
+          <div className="divide-y divide-border/50 rounded-md border">
+            {daySessions.map((s) => {
+              const mins = Math.round(s.duration / 60);
+              const isAdj = s.notes === "__adjustment";
+              return (
+                <div key={s.id} className="flex items-center gap-3 px-3 py-2 text-sm">
+                  <span className="text-[11px] font-mono text-muted-foreground w-12 tabular-nums">
+                    {format(s.startTime, "HH:mm")}
+                  </span>
+                  <span className="flex-1 truncate">
+                    {isAdj ? <span className="text-muted-foreground italic">Manual adjustment</span> : (s.notes || "Focus session")}
+                  </span>
+                  <span className={`tabular-nums font-medium ${mins < 0 ? "text-destructive" : ""}`}>
+                    {mins >= 0 ? "+" : ""}{mins}m
+                  </span>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => editEntry(s.id, mins)} title="Edit">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost" size="icon" className="h-7 w-7 text-destructive"
+                    onClick={async () => { await deleteSession(s.id); toast.success("Removed"); }}
+                    title="Delete"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
