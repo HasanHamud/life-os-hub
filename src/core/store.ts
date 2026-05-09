@@ -359,6 +359,8 @@ export const useStore = create<State>((set, get) => ({
     if (Math.abs(delta) < 0.01) return;
     await get().adjustDayFocus(date, delta, "__adjustment");
   },
+
+  upsertTag: async (patch) => {
     const existing = patch.id ? get().tags.find((x) => x.id === patch.id) : undefined;
     const t: Tag = {
       id: existing?.id ?? uid(),
