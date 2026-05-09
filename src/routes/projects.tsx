@@ -30,10 +30,18 @@ function ProjectsPage() {
   const [createTaskFor, setCreateTaskFor] = useState<string | null>(null);
   const [editTaskId, setEditTaskId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
 
   const open = openProject ? projects.find((p) => p.id === openProject) : null;
   const openTasks = open ? tasks.filter((t) => t.projectId === open.id && !t.parentTaskId) : [];
-  const visibleProjects = projects.filter((p) => (showArchived ? p.archived : !p.archived));
+  const allCategories = Array.from(
+    new Set([...PROJECT_CATEGORY_PRESETS, ...projects.map((p) => p.category).filter(Boolean) as string[]]),
+  );
+  const visibleProjects = projects.filter((p) => {
+    if (showArchived ? !p.archived : p.archived) return false;
+    if (categoryFilter && (p.category ?? "") !== categoryFilter) return false;
+    return true;
+  });
 
   return (
     <PageContainer>
