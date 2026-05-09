@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useStore } from "@/core/store";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { eachDayOfInterval, subDays, format, isSameDay, startOfDay, endOfDay } from "date-fns";
@@ -8,6 +8,11 @@ import {
   LineChart, Line, PieChart, Pie, Cell,
 } from "recharts";
 import { fmt } from "@/core/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { Plus, Minus, Trash2, Pencil } from "lucide-react";
 
 export const Route = createFileRoute("/analytics")({
   head: () => ({ meta: [
