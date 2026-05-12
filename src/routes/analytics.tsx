@@ -130,6 +130,8 @@ function AnalyticsPage() {
         </ChartCard>
       </div>
 
+      <ProjectFocusAnalysis />
+
       <FocusAdjuster />
 
       <div className="grid md:grid-cols-3 gap-4 mt-6">
@@ -138,6 +140,180 @@ function AnalyticsPage() {
         <Summary title="Monthly summary" range="month" />
       </div>
     </PageContainer>
+  );
+}
+
+function ProjectFocusAnalysis() {
+  const { projects, tasks, sessions } = useStore();
+  const [range, setRange] = useState<7 | 30 | 90 | 0>(30);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+
+  const now = Date.now();
+  const start = range === 0 ? 0 : subDays(new Date(), range).getTime();
+
+  const taskProjectMap = useMemo(() => {
+    const m = new Map<string, string>();
+    tasks.forEach((t) => { if (t.projectId) m.set(t.id, t.projectId); });
+    return m;
+  }, [tasks]);
+
+  const sessionProjectId = (s: typeof sessions[number]) =>
+    s.projectId ?? (s.taskId ? taskProjectMap.get(s.taskId) : undefined);
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    projects.forEach((p) => p.category && set.add(p.category));
+    return Array.from(set);
+  }, [projects]);
+
+  const stats = useMemo(() => {
+    const inRange = sessions.filter(
+      (s) => s.type === "focus" && s.startTime >= start && s.startTime <= now && s.notes !== "__adjustment",
+    );
+    const rows = projects
+      .filter((p) => !p.archived)
+      .filter((p) => categoryFilter === "all" || (p.category ?? "") === categoryFilter)
+      .map((p) => {
+        const projSessions = inRange.filter((s) => sessionProjectId(s) === p.id);
+        const minutes = Math.round(projSessions.reduce((a, s) => a + s.duration, 0) / 60);
+        const projTasks = tasks.filter((t) => t.projectId === p.id && !t.archived);
+        const completed = projTasks.filter(
+          (t) => t.completedAt && t.completedAt >= start && t.completedAt <= now,
+        ).length;
+        return {
+          id: p.id,
+          name: p.name,
+          color: p.color || "oklch(0.78 0.13 70)",
+          category: p.category || "—",
+          minutes,
+          totalTasks: projTasks.length,
+          openTasks: projTasks.filter((t) => t.status !== "done").length,
+          completed,
+          sessions: projSessions.length,
+        };
+      })
+      .sort((a, b) => b.minutes - a.minutes);
+
+    const uncategorizedMinutes = Math.round(
+      inRange
+        .filter((s) => !sessionProjectId(s))
+        .reduce((a, s) => a + s.duration, 0) / 60,
+    );
+
+    return { rows, uncategorizedMinutes, totalMinutes: rows.reduce((a, r) => a + r.minutes, 0) };
+  }, [projects, tasks, sessions, start, now, categoryFilter, taskProjectMap]);
+
+  const chartData = stats.rows.filter((r) => r.minutes > 0).slice(0, 10);
+
+  return (
+    <div className="rounded-xl border bg-card p-4 mt-6">
+      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        <div>
+          <div className="text-sm font-semibold">Project focus analysis</div>
+          <div className="text-[11px] text-muted-foreground">
+            Time and tasks per project. Total tracked: <span className="text-foreground font-medium">{fmt.duration(stats.totalMinutes)}</span>
+            {stats.uncategorizedMinutes > 0 && <> · No project: {fmt.duration(stats.uncategorizedMinutes)}</>}
+          </div>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          {categories.length > 0 && (
+            <select
+              className="h-8 rounded-md border bg-background px-2 text-xs"
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              <option value="all">All categories</option>
+              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          )}
+          {([7, 30, 90, 0] as const).map((r) => (
+            <Button
+              key={r}
+              size="sm"
+              variant={range === r ? "default" : "outline"}
+              className="h-8 text-xs"
+              onClick={() => setRange(r)}
+            >
+              {r === 0 ? "All time" : `${r}d`}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {chartData.length === 0 ? (
+        <div className="h-[200px] grid place-items-center text-xs text-muted-foreground">
+          No focus sessions linked to projects in this range.
+        </div>
+      ) : (
+        <div className="grid lg:grid-cols-2 gap-4">
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 16 }}>
+              <CartesianGrid stroke="oklch(0.26 0.014 65)" strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" tick={{ fill: "oklch(0.64 0.018 75)", fontSize: 10 }} />
+              <YAxis type="category" dataKey="name" tick={{ fill: "oklch(0.64 0.018 75)", fontSize: 10 }} width={100} />
+              <Tooltip
+                contentStyle={{ background: "oklch(0.22 0.014 64)", border: "1px solid oklch(0.30 0.022 70)", borderRadius: 8, fontSize: 12 }}
+                formatter={(v: any) => fmt.duration(Number(v) || 0)}
+              />
+              <Bar dataKey="minutes" radius={[0, 4, 4, 0]}>
+                {chartData.map((d) => <Cell key={d.id} fill={d.color} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+
+          <ResponsiveContainer width="100%" height={260}>
+            <PieChart>
+              <Pie data={chartData} dataKey="minutes" nameKey="name" innerRadius={55} outerRadius={95} paddingAngle={2}>
+                {chartData.map((d) => <Cell key={d.id} fill={d.color} />)}
+              </Pie>
+              <Tooltip
+                contentStyle={{ background: "oklch(0.22 0.014 64)", border: "1px solid oklch(0.30 0.022 70)", borderRadius: 8, fontSize: 12 }}
+                formatter={(v: any) => fmt.duration(Number(v) || 0)}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {stats.rows.length > 0 && (
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-[11px] uppercase tracking-wide text-muted-foreground border-b">
+                <th className="py-2 pr-3">Project</th>
+                <th className="py-2 pr-3">Category</th>
+                <th className="py-2 pr-3 text-right">Focus</th>
+                <th className="py-2 pr-3 text-right">Sessions</th>
+                <th className="py-2 pr-3 text-right">Tasks done</th>
+                <th className="py-2 pr-3 text-right">Open / Total</th>
+                <th className="py-2 text-right">Share</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/50">
+              {stats.rows.map((r) => {
+                const share = stats.totalMinutes > 0 ? Math.round((r.minutes / stats.totalMinutes) * 100) : 0;
+                return (
+                  <tr key={r.id}>
+                    <td className="py-2 pr-3">
+                      <span className="inline-flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ background: r.color }} />
+                        {r.name}
+                      </span>
+                    </td>
+                    <td className="py-2 pr-3 text-muted-foreground">{r.category}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums font-medium">{fmt.duration(r.minutes)}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums">{r.sessions}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums">{r.completed}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums text-muted-foreground">{r.openTasks} / {r.totalTasks}</td>
+                    <td className="py-2 text-right tabular-nums text-muted-foreground">{share}%</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }
 
