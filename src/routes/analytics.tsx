@@ -130,6 +130,8 @@ function AnalyticsPage() {
         </ChartCard>
       </div>
 
+      <ProjectFocusAnalysis />
+
       <FocusAdjuster />
 
       <div className="grid md:grid-cols-3 gap-4 mt-6">
