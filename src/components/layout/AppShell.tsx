@@ -29,7 +29,7 @@ export function AppShell() {
       </div>
       <Toaster />
       <FloatingTimer />
-      <VoiceAssistant />
+      
     </div>
   );
 }
