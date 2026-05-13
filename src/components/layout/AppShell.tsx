@@ -3,7 +3,6 @@ import { Outlet } from "@tanstack/react-router";
 import { Sidebar } from "./Sidebar";
 import { MobileNav } from "./MobileNav";
 import { FloatingTimer } from "./FloatingTimer";
-import { VoiceAssistant } from "@/voice/VoiceAssistant";
 import { useStore } from "@/core/store";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -30,7 +29,7 @@ export function AppShell() {
       </div>
       <Toaster />
       <FloatingTimer />
-      <VoiceAssistant />
+      
     </div>
   );
 }
