@@ -4,15 +4,20 @@ import { Sidebar } from "./Sidebar";
 import { MobileNav } from "./MobileNav";
 import { FloatingTimer } from "./FloatingTimer";
 import { useStore } from "@/core/store";
+import { useLearnStore } from "@/core/learn-store";
 import { Toaster } from "@/components/ui/sonner";
 
 export function AppShell() {
   const load = useStore((s) => s.load);
   const loaded = useStore((s) => s.loaded);
+  const learnLoad = useLearnStore((s) => s.load);
 
   useEffect(() => {
-    load().catch((e) => console.error("DB load failed", e));
-  }, [load]);
+    Promise.all([
+      load(),
+      learnLoad(),
+    ]).catch((e) => console.error("DB load failed", e));
+  }, [load, learnLoad]);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">

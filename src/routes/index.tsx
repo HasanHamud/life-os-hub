@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useStore } from "@/core/store";
+import { useLearnStore } from "@/core/learn-store";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { TaskRow } from "@/components/tasks/TaskCard";
 import { fmt, blocksOnDay, focusMinutesOnDay, isDueToday, isOverdue, taskScore } from "@/core/utils";
-import { Calendar, Clock, Flame, CheckCircle2, AlertTriangle, Target as TargetIcon } from "lucide-react";
+import { Calendar, Clock, Flame, CheckCircle2, AlertTriangle, Target as TargetIcon, GraduationCap } from "lucide-react";
 import { useState } from "react";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { Button } from "@/components/ui/button";
@@ -90,6 +91,8 @@ function DashboardPage() {
                 </div>}
           </Card>
 
+          <TodayLearningCard />
+
           <Card title="Active goals" right={<Link to="/goals" className="text-xs text-primary hover:underline">All →</Link>}>
             {goals.length === 0
               ? <Empty>No goals set.</Empty>
@@ -161,4 +164,64 @@ function Card({ title, subtitle, right, children }: { title: string; subtitle?: 
 
 function Empty({ children }: { children: React.ReactNode }) {
   return <div className="text-center py-6 text-xs text-muted-foreground">{children}</div>;
+}
+
+function TodayLearningCard() {
+  const { insights, concepts, sessions } = useLearnStore();
+  const rotation = useLearnStore((s) => s.rotation);
+  const today = new Date().getDay();
+  const entry = rotation.find((r) => r.dayOfWeek === today);
+  const mod = entry && entry.enabled ? { subject: entry.subject, icon: entry.icon } : { subject: "Rest", icon: "🧘" };
+  const todayStr = formatToday();
+
+  const todayInsights = insights.filter((i) => i.date === todayStr).length;
+  const streak = calcStreak(sessions.map((s) => s.date));
+
+  return (
+    <Card title="Today's Learning" right={<Link to="/learn" className="text-xs text-primary hover:underline">Open →</Link>}>
+      <div className="p-2">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-lg">{mod.icon}</span>
+          <div>
+            <div className="text-sm font-medium">{mod.subject} Day</div>
+            <div className="text-[10px] text-muted-foreground">
+              {concepts.length} concepts · {insights.length} insights
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground border-t pt-2 mt-1">
+          <span>Insights today: {todayInsights}</span>
+          <span>🔥 {streak}d streak</span>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function formatToday() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function calcStreak(dates: string[]): number {
+  if (dates.length === 0) return 0;
+  const set = new Set(dates);
+  let streak = 0;
+  const d = new Date();
+  for (let i = 0; i < 365; i++) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const key = `${y}-${m}-${day}`;
+    if (set.has(key)) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  return streak;
 }

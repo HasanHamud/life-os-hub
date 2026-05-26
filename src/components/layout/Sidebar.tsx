@@ -3,6 +3,7 @@ import {
   LayoutDashboard, ListChecks, Calendar, Clock, Target, FolderKanban,
   Timer, BarChart3, Tag as TagIcon, BookOpen, Settings as SettingsIcon, Focus, Watch,
   Wallet, ArrowLeftRight, Layers, PiggyBank, LineChart, StickyNote,
+  GraduationCap, Lightbulb, Brain, Code, TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,10 +18,18 @@ const NAV = [
   { to: "/pomodoro", label: "Pomodoro", icon: Timer },
   { to: "/stopwatch", label: "Stopwatch", icon: Watch },
   { to: "/focus", label: "Focus", icon: Focus },
+  { to: "/journal", label: "Journal", icon: BookOpen },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/tags", label: "Tags", icon: TagIcon },
-  { to: "/journal", label: "Journal", icon: BookOpen },
 ] as const;
+
+const LEARN_NAV: { to: string; label: string; icon: any; exact?: boolean }[] = [
+  { to: "/learn", label: "Learn", icon: GraduationCap, exact: true },
+  { to: "/learn/insights", label: "Insights", icon: Lightbulb },
+  { to: "/learn/concepts", label: "Concepts", icon: Brain },
+  { to: "/learn/problems", label: "Problems", icon: Code },
+  { to: "/learn/progress", label: "Progress", icon: TrendingUp },
+];
 
 const FINANCE_NAV: { to: string; label: string; icon: any; exact?: boolean }[] = [
   { to: "/finance", label: "Overview", icon: Wallet, exact: true },
@@ -50,6 +59,29 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto px-2 pb-4 scrollbar-thin">
         {NAV.map(({ to, label, icon: Icon }) => {
           const active = to === "/" ? path === "/" : path.startsWith(to);
+          return (
+            <Link
+              key={to}
+              to={to}
+              className={cn(
+                "group flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                active
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  : "text-sidebar-foreground/80"
+              )}
+            >
+              <Icon className={cn("h-4 w-4", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
+
+        <div className="px-3 pt-5 pb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
+          Learning
+        </div>
+        {LEARN_NAV.map(({ to, label, icon: Icon, exact }) => {
+          const active = exact ? path === to : path.startsWith(to);
           return (
             <Link
               key={to}

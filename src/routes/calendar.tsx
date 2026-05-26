@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useStore } from "@/core/store";
+import { useLearnStore } from "@/core/learn-store";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -28,10 +29,20 @@ type View = "month" | "week" | "day";
 
 function CalendarPage() {
   const { tasks, timeBlocks, upsertTask, deleteTask } = useStore();
+  const rotation = useLearnStore((s) => s.rotation);
+  const learningSessions = useLearnStore((s) => s.sessions);
   const [view, setView] = useState<View>("month");
   const [anchor, setAnchor] = useState(new Date());
   const [dragId, setDragId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
+
+  const rotationByDay = useMemo(() => {
+    const map = new Map<number, { icon: string; subject: string }>();
+    for (const r of rotation) {
+      if (r.enabled) map.set(r.dayOfWeek, { icon: r.icon, subject: r.subject });
+    }
+    return map;
+  }, [rotation]);
 
   const range = useMemo(() => {
     if (view === "month") {
@@ -121,6 +132,25 @@ function CalendarPage() {
                         {format(day, "d")}
                       </div>
                       <div className="space-y-0.5">
+                        {(() => {
+                          const dow = day.getDay();
+                          const rot = rotationByDay.get(dow);
+                          const daySessions = learningSessions.filter((s) => s.date === format(day, "yyyy-MM-dd"));
+                          return (
+                            <>
+                              {rot && (
+                                <div className="truncate text-[10px] px-1 py-0.5 rounded bg-primary/10 text-primary">
+                                  {rot.icon} {rot.subject}
+                                </div>
+                              )}
+                              {daySessions.slice(0, 1).map((s) => (
+                                <div key={s.id} className="truncate text-[10px] px-1 py-0.5 rounded bg-success/15 text-success">
+                                  ◷ {s.duration}m {s.subject}
+                                </div>
+                              ))}
+                            </>
+                          );
+                        })()}
                         {dayTasks.slice(0, 3).map((t) => (
                           <TaskPill
                             key={t.id}
@@ -160,6 +190,24 @@ function CalendarPage() {
                       {format(day, "MMM d")}
                     </div>
                     <div className="space-y-1">
+                      {(() => {
+                        const rot = rotationByDay.get(day.getDay());
+                        const daySessions = learningSessions.filter((s) => s.date === format(day, "yyyy-MM-dd"));
+                        return (
+                          <>
+                            {rot && (
+                              <div className="text-[11px] px-2 py-1 rounded bg-primary/10 text-primary">
+                                {rot.icon} {rot.subject}
+                              </div>
+                            )}
+                            {daySessions.map((s) => (
+                              <div key={s.id} className="text-[11px] px-2 py-1 rounded bg-success/10 text-success">
+                                ◷ {s.duration}m {s.subject} — {s.topic}
+                              </div>
+                            ))}
+                          </>
+                        );
+                      })()}
                       {dayBlocks.map((b) => (
                         <div key={b.id} className="text-[11px] px-2 py-1 rounded bg-info/10 text-info">
                           <div className="font-mono">{format(b.startTime, "HH:mm")}–{format(b.endTime, "HH:mm")}</div>

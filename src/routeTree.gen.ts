@@ -17,6 +17,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as PomodoroRouteImport } from './routes/pomodoro'
 import { Route as NotesRouteImport } from './routes/notes'
+import { Route as LearnRouteImport } from './routes/learn'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as GoalsRouteImport } from './routes/goals'
 import { Route as FocusRouteImport } from './routes/focus'
@@ -24,7 +25,12 @@ import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LearnIndexRouteImport } from './routes/learn.index'
 import { Route as FinanceIndexRouteImport } from './routes/finance.index'
+import { Route as LearnProgressRouteImport } from './routes/learn.progress'
+import { Route as LearnProblemsRouteImport } from './routes/learn.problems'
+import { Route as LearnInsightsRouteImport } from './routes/learn.insights'
+import { Route as LearnConceptsRouteImport } from './routes/learn.concepts'
 import { Route as FinanceTransactionsRouteImport } from './routes/finance.transactions'
 import { Route as FinanceSavingsRouteImport } from './routes/finance.savings'
 import { Route as FinanceCategoriesRouteImport } from './routes/finance.categories'
@@ -72,6 +78,11 @@ const NotesRoute = NotesRouteImport.update({
   path: '/notes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LearnRoute = LearnRouteImport.update({
+  id: '/learn',
+  path: '/learn',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JournalRoute = JournalRouteImport.update({
   id: '/journal',
   path: '/journal',
@@ -107,10 +118,35 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LearnIndexRoute = LearnIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LearnRoute,
+} as any)
 const FinanceIndexRoute = FinanceIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => FinanceRoute,
+} as any)
+const LearnProgressRoute = LearnProgressRouteImport.update({
+  id: '/progress',
+  path: '/progress',
+  getParentRoute: () => LearnRoute,
+} as any)
+const LearnProblemsRoute = LearnProblemsRouteImport.update({
+  id: '/problems',
+  path: '/problems',
+  getParentRoute: () => LearnRoute,
+} as any)
+const LearnInsightsRoute = LearnInsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
+  getParentRoute: () => LearnRoute,
+} as any)
+const LearnConceptsRoute = LearnConceptsRouteImport.update({
+  id: '/concepts',
+  path: '/concepts',
+  getParentRoute: () => LearnRoute,
 } as any)
 const FinanceTransactionsRoute = FinanceTransactionsRouteImport.update({
   id: '/transactions',
@@ -151,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/focus': typeof FocusRoute
   '/goals': typeof GoalsRoute
   '/journal': typeof JournalRoute
+  '/learn': typeof LearnRouteWithChildren
   '/notes': typeof NotesRoute
   '/pomodoro': typeof PomodoroRoute
   '/projects': typeof ProjectsRoute
@@ -165,7 +202,12 @@ export interface FileRoutesByFullPath {
   '/finance/categories': typeof FinanceCategoriesRoute
   '/finance/savings': typeof FinanceSavingsRoute
   '/finance/transactions': typeof FinanceTransactionsRoute
+  '/learn/concepts': typeof LearnConceptsRoute
+  '/learn/insights': typeof LearnInsightsRoute
+  '/learn/problems': typeof LearnProblemsRoute
+  '/learn/progress': typeof LearnProgressRoute
   '/finance/': typeof FinanceIndexRoute
+  '/learn/': typeof LearnIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -188,7 +230,12 @@ export interface FileRoutesByTo {
   '/finance/categories': typeof FinanceCategoriesRoute
   '/finance/savings': typeof FinanceSavingsRoute
   '/finance/transactions': typeof FinanceTransactionsRoute
+  '/learn/concepts': typeof LearnConceptsRoute
+  '/learn/insights': typeof LearnInsightsRoute
+  '/learn/problems': typeof LearnProblemsRoute
+  '/learn/progress': typeof LearnProgressRoute
   '/finance': typeof FinanceIndexRoute
+  '/learn': typeof LearnIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -199,6 +246,7 @@ export interface FileRoutesById {
   '/focus': typeof FocusRoute
   '/goals': typeof GoalsRoute
   '/journal': typeof JournalRoute
+  '/learn': typeof LearnRouteWithChildren
   '/notes': typeof NotesRoute
   '/pomodoro': typeof PomodoroRoute
   '/projects': typeof ProjectsRoute
@@ -213,7 +261,12 @@ export interface FileRoutesById {
   '/finance/categories': typeof FinanceCategoriesRoute
   '/finance/savings': typeof FinanceSavingsRoute
   '/finance/transactions': typeof FinanceTransactionsRoute
+  '/learn/concepts': typeof LearnConceptsRoute
+  '/learn/insights': typeof LearnInsightsRoute
+  '/learn/problems': typeof LearnProblemsRoute
+  '/learn/progress': typeof LearnProgressRoute
   '/finance/': typeof FinanceIndexRoute
+  '/learn/': typeof LearnIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -225,6 +278,7 @@ export interface FileRouteTypes {
     | '/focus'
     | '/goals'
     | '/journal'
+    | '/learn'
     | '/notes'
     | '/pomodoro'
     | '/projects'
@@ -239,7 +293,12 @@ export interface FileRouteTypes {
     | '/finance/categories'
     | '/finance/savings'
     | '/finance/transactions'
+    | '/learn/concepts'
+    | '/learn/insights'
+    | '/learn/problems'
+    | '/learn/progress'
     | '/finance/'
+    | '/learn/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -262,7 +321,12 @@ export interface FileRouteTypes {
     | '/finance/categories'
     | '/finance/savings'
     | '/finance/transactions'
+    | '/learn/concepts'
+    | '/learn/insights'
+    | '/learn/problems'
+    | '/learn/progress'
     | '/finance'
+    | '/learn'
   id:
     | '__root__'
     | '/'
@@ -272,6 +336,7 @@ export interface FileRouteTypes {
     | '/focus'
     | '/goals'
     | '/journal'
+    | '/learn'
     | '/notes'
     | '/pomodoro'
     | '/projects'
@@ -286,7 +351,12 @@ export interface FileRouteTypes {
     | '/finance/categories'
     | '/finance/savings'
     | '/finance/transactions'
+    | '/learn/concepts'
+    | '/learn/insights'
+    | '/learn/problems'
+    | '/learn/progress'
     | '/finance/'
+    | '/learn/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -297,6 +367,7 @@ export interface RootRouteChildren {
   FocusRoute: typeof FocusRoute
   GoalsRoute: typeof GoalsRoute
   JournalRoute: typeof JournalRoute
+  LearnRoute: typeof LearnRouteWithChildren
   NotesRoute: typeof NotesRoute
   PomodoroRoute: typeof PomodoroRoute
   ProjectsRoute: typeof ProjectsRoute
@@ -365,6 +436,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NotesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/learn': {
+      id: '/learn'
+      path: '/learn'
+      fullPath: '/learn'
+      preLoaderRoute: typeof LearnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/journal': {
       id: '/journal'
       path: '/journal'
@@ -414,12 +492,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/learn/': {
+      id: '/learn/'
+      path: '/'
+      fullPath: '/learn/'
+      preLoaderRoute: typeof LearnIndexRouteImport
+      parentRoute: typeof LearnRoute
+    }
     '/finance/': {
       id: '/finance/'
       path: '/'
       fullPath: '/finance/'
       preLoaderRoute: typeof FinanceIndexRouteImport
       parentRoute: typeof FinanceRoute
+    }
+    '/learn/progress': {
+      id: '/learn/progress'
+      path: '/progress'
+      fullPath: '/learn/progress'
+      preLoaderRoute: typeof LearnProgressRouteImport
+      parentRoute: typeof LearnRoute
+    }
+    '/learn/problems': {
+      id: '/learn/problems'
+      path: '/problems'
+      fullPath: '/learn/problems'
+      preLoaderRoute: typeof LearnProblemsRouteImport
+      parentRoute: typeof LearnRoute
+    }
+    '/learn/insights': {
+      id: '/learn/insights'
+      path: '/insights'
+      fullPath: '/learn/insights'
+      preLoaderRoute: typeof LearnInsightsRouteImport
+      parentRoute: typeof LearnRoute
+    }
+    '/learn/concepts': {
+      id: '/learn/concepts'
+      path: '/concepts'
+      fullPath: '/learn/concepts'
+      preLoaderRoute: typeof LearnConceptsRouteImport
+      parentRoute: typeof LearnRoute
     }
     '/finance/transactions': {
       id: '/finance/transactions'
@@ -489,6 +602,24 @@ const FinanceRouteChildren: FinanceRouteChildren = {
 const FinanceRouteWithChildren =
   FinanceRoute._addFileChildren(FinanceRouteChildren)
 
+interface LearnRouteChildren {
+  LearnConceptsRoute: typeof LearnConceptsRoute
+  LearnInsightsRoute: typeof LearnInsightsRoute
+  LearnProblemsRoute: typeof LearnProblemsRoute
+  LearnProgressRoute: typeof LearnProgressRoute
+  LearnIndexRoute: typeof LearnIndexRoute
+}
+
+const LearnRouteChildren: LearnRouteChildren = {
+  LearnConceptsRoute: LearnConceptsRoute,
+  LearnInsightsRoute: LearnInsightsRoute,
+  LearnProblemsRoute: LearnProblemsRoute,
+  LearnProgressRoute: LearnProgressRoute,
+  LearnIndexRoute: LearnIndexRoute,
+}
+
+const LearnRouteWithChildren = LearnRoute._addFileChildren(LearnRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyticsRoute: AnalyticsRoute,
@@ -497,6 +628,7 @@ const rootRouteChildren: RootRouteChildren = {
   FocusRoute: FocusRoute,
   GoalsRoute: GoalsRoute,
   JournalRoute: JournalRoute,
+  LearnRoute: LearnRouteWithChildren,
   NotesRoute: NotesRoute,
   PomodoroRoute: PomodoroRoute,
   ProjectsRoute: ProjectsRoute,
@@ -509,3 +641,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

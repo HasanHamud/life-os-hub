@@ -5,6 +5,9 @@ import type {
 import type {
   Account, Transaction, Category, Budget, SavingsGoal,
 } from "./finance-types";
+import type {
+  Concept, LearningInsight, Problem, LearningSession, RotationEntry,
+} from "./learn-types";
 
 interface LifeOSDB extends DBSchema {
   tasks: { key: string; value: Task; indexes: { byStatus: string; byProject: string; byGoal: string; byDeadline: number } };
@@ -23,10 +26,15 @@ interface LifeOSDB extends DBSchema {
   budgets: { key: string; value: Budget; indexes: { byCategory: string } };
   savingsGoals: { key: string; value: SavingsGoal };
   notes: { key: string; value: Note; indexes: { byUpdated: number; byStatus: string } };
+  concepts: { key: string; value: Concept; indexes: { bySubject: string; byPhase: number; byClarity: number; byTopic: string } };
+  insights: { key: string; value: LearningInsight; indexes: { byDate: string; bySubject: string; byNextReview: number } };
+  problems: { key: string; value: Problem; indexes: { bySubject: string; byPattern: string; byDifficulty: number; byCompleted: number } };
+  learningSessions: { key: string; value: LearningSession; indexes: { byDate: string; bySubject: string } };
+  rotationEntries: { key: string; value: RotationEntry; indexes: { byDay: number } };
 }
 
 const DB_NAME = "life-os";
-const DB_VERSION = 3;
+const DB_VERSION = 5;
 
 let dbPromise: Promise<IDBPDatabase<LifeOSDB>> | null = null;
 
@@ -84,6 +92,32 @@ export function getDB() {
           notes.createIndex("byUpdated", "updatedAt");
           notes.createIndex("byStatus", "status");
         }
+        if (oldVersion < 4) {
+          const concepts = db.createObjectStore("concepts", { keyPath: "id" });
+          concepts.createIndex("bySubject", "subject");
+          concepts.createIndex("byPhase", "phase");
+          concepts.createIndex("byClarity", "clarityRating");
+          concepts.createIndex("byTopic", "topic");
+
+          const insights = db.createObjectStore("insights", { keyPath: "id" });
+          insights.createIndex("byDate", "date");
+          insights.createIndex("bySubject", "subject");
+          insights.createIndex("byNextReview", "nextReviewAt");
+
+          const problems = db.createObjectStore("problems", { keyPath: "id" });
+          problems.createIndex("bySubject", "subject");
+          problems.createIndex("byPattern", "patternClass");
+          problems.createIndex("byDifficulty", "difficulty");
+          problems.createIndex("byCompleted", "completed");
+
+          const sessions = db.createObjectStore("learningSessions", { keyPath: "id" });
+          sessions.createIndex("byDate", "date");
+          sessions.createIndex("bySubject", "subject");
+        }
+        if (oldVersion < 5) {
+          const rotation = db.createObjectStore("rotationEntries", { keyPath: "id" });
+          rotation.createIndex("byDay", "dayOfWeek");
+        }
       },
     });
   }
@@ -93,7 +127,8 @@ export function getDB() {
 // Generic CRUD helpers
 type Stores =
   | "tasks" | "timeBlocks" | "projects" | "goals" | "sessions" | "tags" | "logs" | "snapshots" | "settings"
-  | "accounts" | "transactions" | "categories" | "budgets" | "savingsGoals" | "notes";
+  | "accounts" | "transactions" | "categories" | "budgets" | "savingsGoals" | "notes"
+  | "concepts" | "insights" | "problems" | "learningSessions" | "rotationEntries";
 
 export async function getAll<T>(store: Stores): Promise<T[]> {
   const db = await getDB();
@@ -119,6 +154,7 @@ export async function delOne(store: Stores, id: string): Promise<void> {
 const ALL_STORES: Stores[] = [
   "tasks", "timeBlocks", "projects", "goals", "sessions", "tags", "logs", "snapshots", "settings",
   "accounts", "transactions", "categories", "budgets", "savingsGoals", "notes",
+  "concepts", "insights", "problems", "learningSessions", "rotationEntries",
 ];
 
 export async function clearAll(): Promise<void> {

@@ -7,6 +7,7 @@ import { fmtMoney, signedAmount, topCategories, savingsRate, financialHealthScor
 import { TransactionDialog } from "@/components/finance/TransactionDialog";
 import { TrendingUp, TrendingDown, Wallet, PiggyBank, Plus, ArrowRightLeft, Sparkles } from "lucide-react";
 import { format, isWeekend, startOfMonth, endOfMonth } from "date-fns";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/finance/")({
   head: () => ({
@@ -205,6 +206,9 @@ function FinanceDashboard() {
               </div>
             </Card>
           )}
+          <Card title="USD → LBP rate">
+  <RateEditor />
+</Card>
         </aside>
       </div>
 
@@ -243,4 +247,40 @@ function Card({ title, subtitle, right, children }: { title: string; subtitle?: 
 
 function Empty({ children }: { children: React.ReactNode }) {
   return <div className="text-center py-6 text-xs text-muted-foreground">{children}</div>;
+}
+
+
+function RateEditor() {
+  const { settings, updateSettings } = useStore();
+  const [draft, setDraft] = useState(String(settings.usdToLbpRate));
+  const [saved, setSaved] = useState(false);
+
+  const save = async () => {
+    const val = Number(draft.replace(/,/g, ""));
+    if (!val || val < 1) return;
+    await updateSettings({ usdToLbpRate: val });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  };
+
+  return (
+    <div className="px-2 pb-2 space-y-2">
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground shrink-0">1 USD =</span>
+        <Input
+          type="number"
+          step="1000"
+          min="1"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && save()}
+          className="h-8 text-sm tabular-nums"
+        />
+        <span className="text-xs text-muted-foreground shrink-0">LBP</span>
+      </div>
+      <Button size="sm" className="w-full h-7 text-xs" onClick={save}>
+        {saved ? "✓ Saved" : "Update rate"}
+      </Button>
+    </div>
+  );
 }
