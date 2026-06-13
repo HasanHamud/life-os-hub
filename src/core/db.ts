@@ -72,7 +72,7 @@ export async function getOne<T>(store: Stores, id: string): Promise<T | undefine
     .select("*")
     .eq("id", id)
     .eq("user_id", userId)
-    .single();
+    .maybeSingle();
   if (!data) return undefined;
   return data as T;
 }
@@ -83,7 +83,7 @@ export async function putOne<T extends { id: string }>(store: Stores, value: T):
   const table = tableName(store);
   const snake = toSnakeCase(value as any);
   const payload = { ...snake, user_id: userId };
-  const { error } = await supabase.from(table).upsert(payload, { onConflict: "id" });
+  const { error } = await supabase.from(table).upsert(payload);
   if (error) throw error;
   return value;
 }
@@ -131,7 +131,7 @@ export async function importAll(data: any) {
     if (Array.isArray(items) && items.length > 0) {
       const table = tableName(store);
       const rows = items.map((item: any) => ({ ...toSnakeCase(item), user_id: userId }));
-      const { error } = await supabase.from(table).upsert(rows, { onConflict: "id" });
+      const { error } = await supabase.from(table).upsert(rows);
       if (error) throw error;
     }
   }
