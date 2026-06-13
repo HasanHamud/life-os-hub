@@ -238,8 +238,8 @@ export const useLearnStore = create<LearnState>((set, get) => ({
   },
 
   seedRotation: async () => {
-    const entries: RotationEntry[] = DEFAULT_ROTATION.map((d, i) => ({
-      id: `day-${d.dayOfWeek}`,
+    const entries: RotationEntry[] = DEFAULT_ROTATION.map((d) => ({
+      id: uid(),
       ...d,
     }));
     for (const entry of entries) {

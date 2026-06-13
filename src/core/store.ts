@@ -830,8 +830,8 @@ async function seed() {
   for (const t of samples) await putOne("tasks", t);
 
   const t1 = today + 9 * 3600000;
-  await putOne("timeBlocks", { id: uid(), title: "Deep work: Dashboard", startTime: t1, endTime: t1 + 5400000, type: "deep", isCompleted: false, taskId: samples[0].id, createdAt: now });
-  await putOne("timeBlocks", { id: uid(), title: "Email & admin", startTime: t1 + 6 * 3600000, endTime: t1 + 7 * 3600000, type: "shallow", isCompleted: false, createdAt: now });
+  await putOne("timeBlocks", { id: uid(), title: "Deep work: Dashboard", startTime: t1, endTime: t1 + 5400000, type: "work", isCompleted: false, taskId: samples[0].id, createdAt: now });
+  await putOne("timeBlocks", { id: uid(), title: "Email & admin", startTime: t1 + 6 * 3600000, endTime: t1 + 7 * 3600000, type: "work", isCompleted: false, createdAt: now });
 }
 
 async function seedFinance() {
