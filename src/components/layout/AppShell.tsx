@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Outlet } from "@tanstack/react-router";
 import { Sidebar } from "./Sidebar";
 import { MobileNav } from "./MobileNav";
@@ -7,28 +7,18 @@ import { AuthGuard } from "./AuthGuard";
 import { useStore } from "@/core/store";
 import { useLearnStore } from "@/core/learn-store";
 import { Toaster } from "@/components/ui/sonner";
-import { supabase } from "@/core/supabase";
 
 export function AppShell() {
   const load = useStore((s) => s.load);
   const loaded = useStore((s) => s.loaded);
   const learnLoad = useLearnStore((s) => s.load);
-  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setAuthReady(true);
-      else setAuthReady(true);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!authReady) return;
     Promise.all([
       load(),
       learnLoad(),
     ]).catch((e) => console.error("DB load failed", e));
-  }, [authReady, load, learnLoad]);
+  }, [load, learnLoad]);
 
   return (
     <AuthGuard>

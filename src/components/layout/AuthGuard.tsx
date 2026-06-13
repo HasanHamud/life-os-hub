@@ -1,19 +1,23 @@
 import { useEffect, useState } from "react";
-import { supabase, clearUserIdCache } from "@/core/supabase";
+import { supabase } from "@/core/supabase";
+import { setCurrentUserId } from "@/core/db";
 import type { User } from "@supabase/supabase-js";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null | "loading">("loading");
 
   useEffect(() => {
-    clearUserIdCache();
+    setCurrentUserId(null);
     supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user ?? null);
+      const u = data.user ?? null;
+      setCurrentUserId(u?.id ?? null);
+      setUser(u);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      clearUserIdCache();
-      setUser(session?.user ?? null);
+      const u = session?.user ?? null;
+      setCurrentUserId(u?.id ?? null);
+      setUser(u);
     });
 
     return () => sub?.subscription.unsubscribe();

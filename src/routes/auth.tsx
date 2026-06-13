@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
-import { supabase, clearUserIdCache } from "@/core/supabase";
+import { supabase } from "@/core/supabase";
+import { setCurrentUserId } from "@/core/db";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
@@ -22,7 +23,8 @@ function AuthPage() {
       toast.error(error.message);
       return;
     }
-    clearUserIdCache();
+    const { data } = await supabase.auth.getUser();
+    setCurrentUserId(data.user?.id ?? null);
     router.invalidate();
   };
 
