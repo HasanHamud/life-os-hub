@@ -7,7 +7,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null | "loading">("loading");
 
   useEffect(() => {
-    setCurrentUserId(null);
     supabase.auth.getUser().then(({ data }) => {
       const u = data.user ?? null;
       setCurrentUserId(u?.id ?? null);

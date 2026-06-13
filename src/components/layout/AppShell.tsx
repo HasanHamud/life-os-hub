@@ -9,6 +9,14 @@ import { useLearnStore } from "@/core/learn-store";
 import { Toaster } from "@/components/ui/sonner";
 
 export function AppShell() {
+  return (
+    <AuthGuard>
+      <AuthenticatedShell />
+    </AuthGuard>
+  );
+}
+
+function AuthenticatedShell() {
   const load = useStore((s) => s.load);
   const loaded = useStore((s) => s.loaded);
   const learnLoad = useLearnStore((s) => s.load);
@@ -21,22 +29,20 @@ export function AppShell() {
   }, [load, learnLoad]);
 
   return (
-    <AuthGuard>
-      <div className="flex h-screen w-full overflow-hidden bg-background">
-        <Sidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <MobileNav />
-          <main className="flex-1 overflow-y-auto">
-            {loaded ? <Outlet /> : (
-              <div className="h-full grid place-items-center text-muted-foreground text-sm">
-                Loading your data…
-              </div>
-            )}
-          </main>
-        </div>
-        <Toaster />
-        <FloatingTimer />
+    <div className="flex h-screen w-full overflow-hidden bg-background">
+      <Sidebar />
+      <div className="flex-1 flex flex-col min-w-0">
+        <MobileNav />
+        <main className="flex-1 overflow-y-auto">
+          {loaded ? <Outlet /> : (
+            <div className="h-full grid place-items-center text-muted-foreground text-sm">
+              Loading your data…
+            </div>
+          )}
+        </main>
       </div>
-    </AuthGuard>
+      <Toaster />
+      <FloatingTimer />
+    </div>
   );
 }
