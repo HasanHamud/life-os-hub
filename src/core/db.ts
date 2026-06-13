@@ -52,6 +52,18 @@ function toSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
   return result;
 }
 
+function snakeToCamelKey(key: string): string {
+  return key.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
+}
+
+function toCamelCase(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const key of Object.keys(obj)) {
+    result[snakeToCamelKey(key)] = obj[key];
+  }
+  return result;
+}
+
 export async function getAll<T>(store: Stores): Promise<T[]> {
   const userId = getCurrentUserId();
   if (!userId) return [];
@@ -60,7 +72,7 @@ export async function getAll<T>(store: Stores): Promise<T[]> {
     .from(table)
     .select("*")
     .eq("user_id", userId);
-  return (data ?? []) as T[];
+  return ((data ?? []) as any[]).map((row) => toCamelCase(row)) as T[];
 }
 
 export async function getOne<T>(store: Stores, id: string): Promise<T | undefined> {
@@ -74,7 +86,7 @@ export async function getOne<T>(store: Stores, id: string): Promise<T | undefine
     .eq("user_id", userId)
     .maybeSingle();
   if (!data) return undefined;
-  return data as T;
+  return toCamelCase(data as any) as T;
 }
 
 export async function putOne<T extends { id: string }>(store: Stores, value: T): Promise<T> {
@@ -84,7 +96,10 @@ export async function putOne<T extends { id: string }>(store: Stores, value: T):
   const snake = toSnakeCase(value as any);
   const payload = { ...snake, user_id: userId };
   const { error } = await supabase.from(table).upsert(payload);
-  if (error) throw error;
+  if (error) {
+    console.error(`putOne error [${table}]:`, error.message, error.details, error.hint);
+    throw error;
+  }
   return value;
 }
 
