@@ -1,18 +1,36 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Outlet } from "@tanstack/react-router";
 import { Sidebar } from "./Sidebar";
 import { MobileNav } from "./MobileNav";
 import { FloatingTimer } from "./FloatingTimer";
-import { AuthGuard } from "./AuthGuard";
 import { useStore } from "@/core/store";
 import { useLearnStore } from "@/core/learn-store";
 import { Toaster } from "@/components/ui/sonner";
+import { supabase } from "@/core/supabase";
+import { setCurrentUserId } from "@/core/db";
 
-export function AppShell() {
+function LoadingScreen() {
   return (
-    <AuthGuard>
-      <AuthenticatedShell />
-    </AuthGuard>
+    <div style={{
+      height: "100vh",
+      display: "grid",
+      placeItems: "center",
+      background: "#161210",
+      color: "#a09888",
+      fontFamily: "system-ui, sans-serif",
+      fontSize: 14,
+    }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{
+          width: 40, height: 40, margin: "0 auto 16px",
+          borderRadius: 10,
+          background: "linear-gradient(135deg, #d4a574, #e8a87c)",
+          display: "grid", placeItems: "center",
+          color: "#161210", fontWeight: "bold", fontSize: 20,
+        }}>L</div>
+        <div>Loading…</div>
+      </div>
+    </div>
   );
 }
 
@@ -45,4 +63,55 @@ function AuthenticatedShell() {
       <FloatingTimer />
     </div>
   );
+}
+
+export function AppShell() {
+  const [authed, setAuthed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getUser()
+      .then(({ data }) => {
+        if (cancelled) return;
+        const u = data.user ?? null;
+        setCurrentUserId(u?.id ?? null);
+        setAuthed(u !== null);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCurrentUserId(null);
+        setAuthed(false);
+      });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      const u = session?.user ?? null;
+      setCurrentUserId(u?.id ?? null);
+      setAuthed(u !== null);
+    });
+
+    return () => {
+      cancelled = true;
+      sub?.subscription.unsubscribe();
+    };
+  }, []);
+
+  if (authed === null) {
+    return <LoadingScreen />;
+  }
+
+  if (!authed) {
+    const isAuthPage = window.location.pathname === "/auth";
+    if (!isAuthPage) {
+      window.location.href = "/auth";
+      return null;
+    }
+    // Show just the auth page (no sidebar, no data loading)
+    return (
+      <div className="min-h-screen bg-background">
+        <Outlet />
+      </div>
+    );
+  }
+
+  return <AuthenticatedShell />;
 }
