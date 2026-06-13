@@ -4,6 +4,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useStore } from "@/core/store";
 import type { Note, NoteAttachment, NoteStatus, NoteType } from "@/core/types";
+import type { Components } from "react-markdown";
+import type { ComponentPropsWithoutRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -469,7 +471,7 @@ function NoteEditor({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  });
+  }, []);
 
   async function flushSave() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -656,7 +658,7 @@ function NoteEditor({
         <div className="flex items-center gap-1 mt-2 flex-wrap">
           {(note.tagIds ?? []).map((tid) => {
             const t = tags.find((x) => x.id === tid);
-            if (!t) return null;
+            if (!t) return undefined;
             return (
               <Badge key={tid} variant="secondary" className="text-[10px] gap-1">
                 {t.name}
@@ -787,14 +789,15 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
   );
 }
 
-const mdComponents = {
-  code({ inline, className, children, ...props }: any) {
+const mdComponents: Components = {
+  code({ className, children, ...props }) {
     const match = /language-(\w+)/.exec(className || "");
     const code = String(children).replace(/\n$/, "");
-    if (!inline && match) {
+    const isInline = !("node" in props && (props as any).node?.type === "code");
+    if (!isInline && match) {
       return <CodeBlock code={code} language={match[1]} />;
     }
-    return <code className={cn("bg-muted px-1 py-0.5 rounded text-[0.85em]", className)} {...props}>{children}</code>;
+    return <code className={cn("bg-muted px-1 py-0.5 rounded text-[0.85em]", className)} {...(props as ComponentPropsWithoutRef<"code">)}>{children}</code>;
   },
 };
 

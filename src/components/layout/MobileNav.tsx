@@ -14,13 +14,22 @@ const NAV = [
   { to: "/pomodoro", label: "Pomodoro" },
   { to: "/stopwatch", label: "Stopwatch" },
   { to: "/focus", label: "Focus" },
+  { to: "/journal", label: "Journal" },
   { to: "/analytics", label: "Analytics" },
   { to: "/tags", label: "Tags" },
-  { to: "/journal", label: "Journal" },
+  { to: "/weekly-plan", label: "Weekly" },
+  { to: "/learn", label: "Learn" },
+  { to: "/learn/insights", label: "Insights" },
+  { to: "/learn/concepts", label: "Concepts" },
+  { to: "/learn/problems", label: "Problems" },
+  { to: "/learn/progress", label: "Progress" },
   { to: "/finance", label: "Finance" },
   { to: "/finance/transactions", label: "Tx" },
+  { to: "/finance/accounts", label: "Accounts" },
+  { to: "/finance/categories", label: "Cats" },
   { to: "/finance/budgets", label: "Budgets" },
   { to: "/finance/savings", label: "Savings" },
+  { to: "/finance/analytics", label: "Analytics" },
   { to: "/settings", label: "Settings" },
 ] as const;
 
@@ -35,12 +44,12 @@ export function MobileNav() {
           <div className="h-7 w-7 rounded-md bg-gradient-to-br from-primary to-warning grid place-items-center text-primary-foreground text-xs font-bold">L</div>
           <span className="text-sm font-semibold">Life OS</span>
         </div>
-        <button onClick={() => setOpen(!open)} className="p-2 rounded-md hover:bg-sidebar-accent">
+        <button onClick={() => setOpen(!open)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-sidebar-accent">
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
       {open && (
-        <nav className="grid grid-cols-3 gap-1 p-2 border-t">
+        <nav className="grid grid-cols-3 gap-1 p-2 border-t max-h-[70vh] overflow-y-auto">
           {NAV.map(({ to, label }) => {
             const active = to === "/" ? path === "/" : path.startsWith(to);
             return (

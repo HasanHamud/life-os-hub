@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "@/core/store";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import type { Category, CategoryType } from "@/core/finance-types";
 import { categoryPath } from "@/core/finance-utils";
 
@@ -40,9 +41,10 @@ function CategoriesPage() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-1.5 text-xs rounded font-medium capitalize transition ${
-              tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
+            className={cn(
+              "px-4 py-1.5 text-xs rounded font-medium capitalize transition",
+              tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+            )}
           >{t}</button>
         ))}
       </div>
@@ -103,15 +105,18 @@ function CategoryDialog({
   const [parent, setParent] = useState<string>("none");
   const [color, setColor] = useState("#d4a574");
 
-  if (open && category && name === "" && category.name !== "") {
-    setName(category.name);
-    setType(category.type);
-    setParent(category.parentCategoryId ?? "none");
-    setColor(category.color);
-  }
-  if (open && !category && name === "" && type !== defaultType) {
-    setType(defaultType);
-  }
+  useEffect(() => {
+    if (open && category) {
+      setName(category.name);
+      setType(category.type);
+      setParent(category.parentCategoryId ?? "none");
+      setColor(category.color);
+    } else if (open && !category) {
+      setType(defaultType);
+    } else if (!open) {
+      reset();
+    }
+  }, [open, category, defaultType]);
 
   const reset = () => { setName(""); setType(defaultType); setParent("none"); setColor("#d4a574"); };
 

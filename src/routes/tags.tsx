@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "@/core/store";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -66,13 +66,19 @@ function TagDialog({
   onDelete?: () => Promise<void>;
 }) {
   const tag = useStore((s) => tagId ? s.tags.find((t) => t.id === tagId) : undefined);
-  const [name, setName] = useState(tag?.name ?? "");
-  const [color, setColor] = useState(tag?.color ?? "#d4a574");
+  const [name, setName] = useState("");
+  const [color, setColor] = useState("#d4a574");
 
   // sync on open
-  if (open && tag && name === "" && tag.name) {
-    setName(tag.name); setColor(tag.color);
-  }
+  useEffect(() => {
+    if (open && tag) {
+      setName(tag.name);
+      setColor(tag.color);
+    } else if (!open) {
+      setName("");
+      setColor("#d4a574");
+    }
+  }, [open, tag]);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) setName(""); onOpenChange(v); }}>

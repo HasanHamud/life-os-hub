@@ -8,6 +8,7 @@ import { Calendar, Clock, Flame, CheckCircle2, AlertTriangle, Target as TargetIc
 import { useState } from "react";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { Button } from "@/components/ui/button";
+import { Card, EmptyState } from "@/components/common/Card";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -53,7 +54,7 @@ function DashboardPage() {
         <section className="lg:col-span-2 space-y-6">
           <Card title="Top of mind" subtitle="Auto-prioritized by urgency, deadline & age">
             {top.length === 0
-              ? <Empty>Nothing on deck. Take a breath.</Empty>
+              ? <EmptyState>Nothing on deck. Take a breath.</EmptyState>
               : <div className="divide-y divide-border/50">
                   {top.map((t) => <TaskRow key={t.id} task={t} onClick={() => setOpenTask(t.id)} />)}
                 </div>}
@@ -61,7 +62,7 @@ function DashboardPage() {
 
           <Card title="Due today" right={<Link to="/tasks" className="text-xs text-primary hover:underline">All tasks →</Link>}>
             {dueToday.length === 0
-              ? <Empty>Nothing due today.</Empty>
+              ? <EmptyState>Nothing due today.</EmptyState>
               : <div className="divide-y divide-border/50">
                   {dueToday.map((t) => <TaskRow key={t.id} task={t} onClick={() => setOpenTask(t.id)} />)}
                 </div>}
@@ -71,7 +72,7 @@ function DashboardPage() {
         <aside className="space-y-6">
           <Card title="Today's blocks" right={<Link to="/time" className="text-xs text-primary hover:underline">Plan →</Link>}>
             {todayBlocks.length === 0
-              ? <Empty>No blocks scheduled.</Empty>
+              ? <EmptyState>No blocks scheduled.</EmptyState>
               : <div className="space-y-2">
                   {todayBlocks.map((b) => {
                     const linked = b.taskId ? tasks.find((t) => t.id === b.taskId) : undefined;
@@ -95,7 +96,7 @@ function DashboardPage() {
 
           <Card title="Active goals" right={<Link to="/goals" className="text-xs text-primary hover:underline">All →</Link>}>
             {goals.length === 0
-              ? <Empty>No goals set.</Empty>
+              ? <EmptyState>No goals set.</EmptyState>
               : <div className="space-y-3">
                   {goals.slice(0, 3).map((g) => {
                     const linked = tasks.filter((t) => t.goalId === g.id);
@@ -145,25 +146,6 @@ function Stat({ icon: Icon, label, value, accent }: { icon: any; label: string; 
       <div className="text-2xl font-display font-semibold tabular-nums">{value}</div>
     </div>
   );
-}
-
-function Card({ title, subtitle, right, children }: { title: string; subtitle?: string; right?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border bg-card">
-      <div className="flex items-end justify-between gap-3 px-4 pt-4 pb-2">
-        <div>
-          <h3 className="text-sm font-semibold">{title}</h3>
-          {subtitle && <p className="text-[11px] text-muted-foreground">{subtitle}</p>}
-        </div>
-        {right}
-      </div>
-      <div className="p-2">{children}</div>
-    </div>
-  );
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return <div className="text-center py-6 text-xs text-muted-foreground">{children}</div>;
 }
 
 function TodayLearningCard() {

@@ -26,7 +26,6 @@ function InsightsPage() {
   const subjects = distinctSubjects();
 
   const editing = editingId ? insights.find((i) => i.id === editingId) : undefined;
-  const creatingFrom = editingId ? undefined : undefined;
 
   const filtered = useMemo(() => {
     let list = [...insights].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);

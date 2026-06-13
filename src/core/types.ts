@@ -1,6 +1,6 @@
 export type TaskStatus = "backlog" | "todo" | "in_progress" | "blocked" | "done";
 export type Priority = "low" | "med" | "high" | "urgent";
-export type BlockType = "deep" | "shallow" | "personal";
+export type BlockType = "work" | "freelance" | "personal" | "studies" | "university";
 export type SessionType = "focus" | "break";
 export type RecurrenceFreq = "none" | "daily" | "weekly" | "custom";
 
@@ -46,14 +46,14 @@ export interface TimeBlock {
   createdAt: number;
 }
 
-export const PROJECT_CATEGORY_PRESETS = ["Work", "Freelance", "Personal"] as const;
+export const PROJECT_CATEGORY_PRESETS = ["Work", "Freelance", "Personal", "Studies", "University"] as const;
 
 export interface Project {
   id: string;
   name: string;
   description?: string;
   color?: string;
-  category?: string; // "Work" | "Freelance" | "Personal" | custom
+  category?: string;
   archived?: boolean;
   createdAt: number;
 }
@@ -139,6 +139,50 @@ export interface Note {
   createdAt: number;
   updatedAt: number;
   trashedAt?: number;
+}
+
+export const DEFAULT_WEEK_CATEGORIES = ["Work", "Freelance", "Personal", "Studies", "University"];
+
+export interface WeeklyPlan {
+  id: string;
+  weekStart: number;
+  intention: string;
+  goals: string[];
+  categories: string[];
+  categoryNotes: Record<string, string>;
+  notes: string;
+  reflection?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface WeekTemplateDayBlock {
+  startHour: number;
+  startMin: number;
+  durationMin: number;
+  type: BlockType;
+  title: string;
+}
+
+export interface WeekTemplateDayTask {
+  title: string;
+  effort?: number;
+  priority: Priority;
+  projectId?: string;
+  tagIds: string[];
+}
+
+export interface WeekTemplateDay {
+  dayOfWeek: number; // 0=Sun, 6=Sat
+  blocks: WeekTemplateDayBlock[];
+  tasks: WeekTemplateDayTask[];
+}
+
+export interface WeekTemplate {
+  id: string;
+  name: string;
+  days: WeekTemplateDay[];
+  createdAt: number;
 }
 
 export interface Settings {

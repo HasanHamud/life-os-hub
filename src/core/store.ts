@@ -5,7 +5,9 @@ import {
 } from "./db";
 import type {
   Task, TimeBlock, Project, Goal, Session, Tag, LogEntry, Settings, TaskStatus, Recurrence, Note,
+  WeeklyPlan, WeekTemplate,
 } from "./types";
+import { DEFAULT_WEEK_CATEGORIES } from "./types";
 import type {
   Account, Transaction, Category, Budget, SavingsGoal, FinanceRecurrence,
 } from "./finance-types";
@@ -21,6 +23,10 @@ interface State {
   tags: Tag[];
   logs: LogEntry[];
   settings: Settings;
+
+  // Weekly plan
+  weeklyPlans: WeeklyPlan[];
+  weekTemplates: WeekTemplate[];
 
   // Finance
   accounts: Account[];
@@ -90,6 +96,15 @@ interface State {
   recomputeBalances: () => void;
   materializeFinanceRecurring: () => Promise<void>;
 
+  // weekly plan
+  upsertWeeklyPlan: (p: Partial<WeeklyPlan> & { weekStart?: number }) => Promise<WeeklyPlan>;
+  deleteWeeklyPlan: (id: string) => Promise<void>;
+
+  // templates
+  upsertWeekTemplate: (t: Partial<WeekTemplate> & { name?: string }) => Promise<WeekTemplate>;
+  deleteWeekTemplate: (id: string) => Promise<void>;
+  applyWeekTemplate: (templateId: string, weekStart: number) => Promise<void>;
+
   // notes
   upsertNote: (n: Partial<Note> & { title?: string }) => Promise<Note>;
   deleteNote: (id: string) => Promise<void>;
@@ -127,10 +142,13 @@ export const useStore = create<State>((set, get) => ({
   budgets: [],
   savingsGoals: [],
   notes: [],
+  weeklyPlans: [],
+  weekTemplates: [],
 
   load: async () => {
     const [tasks, timeBlocks, projects, goals, sessions, tags, logs,
-      accounts, transactions, categories, budgets, savingsGoals, notes] = await Promise.all([
+      accounts, transactions, categories, budgets, savingsGoals, notes,
+      weeklyPlans, weekTemplates] = await Promise.all([
       getAll<Task>("tasks"),
       getAll<TimeBlock>("timeBlocks"),
       getAll<Project>("projects"),
@@ -144,6 +162,8 @@ export const useStore = create<State>((set, get) => ({
       getAll<Budget>("budgets"),
       getAll<SavingsGoal>("savingsGoals"),
       getAll<Note>("notes"),
+      getAll<WeeklyPlan>("weeklyPlans"),
+      getAll<WeekTemplate>("weekTemplates"),
     ]);
     let settings = await getOne<Settings>("settings", "global");
     if (!settings) {
@@ -155,7 +175,6 @@ export const useStore = create<State>((set, get) => ({
       await putOne("settings", settings);
     }
 
-    // Seed sample data on first run
     if (tasks.length === 0 && projects.length === 0 && tags.length === 0) {
       await seed();
     }
@@ -164,7 +183,8 @@ export const useStore = create<State>((set, get) => ({
     }
 
     const [t2, b2, p2, g2, ses2, tg2, lg2,
-      acc2, tx2, cat2, bud2, sg2, n2] = await Promise.all([
+      acc2, tx2, cat2, bud2, sg2, n2,
+      wp2, wt2] = await Promise.all([
       getAll<Task>("tasks"),
       getAll<TimeBlock>("timeBlocks"),
       getAll<Project>("projects"),
@@ -178,6 +198,8 @@ export const useStore = create<State>((set, get) => ({
       getAll<Budget>("budgets"),
       getAll<SavingsGoal>("savingsGoals"),
       getAll<Note>("notes"),
+      getAll<WeeklyPlan>("weeklyPlans"),
+      getAll<WeekTemplate>("weekTemplates"),
     ]);
 
     const accWithBalances = recomputeAccountBalances(acc2, tx2);
@@ -186,6 +208,7 @@ export const useStore = create<State>((set, get) => ({
       tasks: t2, timeBlocks: b2, projects: p2, goals: g2, sessions: ses2, tags: tg2, logs: lg2, settings,
       accounts: accWithBalances, transactions: tx2, categories: cat2, budgets: bud2, savingsGoals: sg2,
       notes: n2,
+      weeklyPlans: wp2, weekTemplates: wt2,
       loaded: true,
     });
 
@@ -250,7 +273,7 @@ export const useStore = create<State>((set, get) => ({
       title: patch.title ?? existing?.title ?? "Time Block",
       startTime: patch.startTime ?? existing?.startTime ?? Date.now(),
       endTime: patch.endTime ?? existing?.endTime ?? Date.now() + 3600_000,
-      type: patch.type ?? existing?.type ?? "deep",
+      type: patch.type ?? existing?.type ?? "work",
       isCompleted: patch.isCompleted ?? existing?.isCompleted ?? false,
       notes: patch.notes ?? existing?.notes,
       recurrence: "recurrence" in patch ? patch.recurrence : existing?.recurrence,
@@ -684,6 +707,84 @@ export const useStore = create<State>((set, get) => ({
     if (!n) return;
     await get().upsertNote({ ...n, status: "active" });
   },
+
+  upsertWeeklyPlan: async (patch) => {
+    const existing = patch.id ? get().weeklyPlans.find((x) => x.id === patch.id) : undefined;
+    const now = Date.now();
+    const p: WeeklyPlan = {
+      id: existing?.id ?? (patch.weekStart ? `week-${format(new Date(patch.weekStart), "yyyy-MM-dd")}` : uid()),
+      weekStart: patch.weekStart ?? existing?.weekStart ?? startOfDay(new Date()).getTime(),
+      intention: patch.intention ?? existing?.intention ?? "",
+      goals: patch.goals ?? existing?.goals ?? [],
+      categories: patch.categories ?? existing?.categories ?? DEFAULT_WEEK_CATEGORIES,
+      categoryNotes: patch.categoryNotes ?? existing?.categoryNotes ?? {},
+      notes: patch.notes ?? existing?.notes ?? "",
+      reflection: "reflection" in patch ? patch.reflection : existing?.reflection,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+    };
+    await putOne("weeklyPlans", p);
+    set((s) => ({
+      weeklyPlans: existing ? s.weeklyPlans.map((x) => (x.id === p.id ? p : x)) : [...s.weeklyPlans, p],
+    }));
+    return p;
+  },
+  deleteWeeklyPlan: async (id) => {
+    await delOne("weeklyPlans", id);
+    set((s) => ({ weeklyPlans: s.weeklyPlans.filter((x) => x.id !== id) }));
+  },
+
+  upsertWeekTemplate: async (patch) => {
+    const existing = patch.id ? get().weekTemplates.find((x) => x.id === patch.id) : undefined;
+    const t: WeekTemplate = {
+      id: existing?.id ?? uid(),
+      name: patch.name ?? existing?.name ?? "Untitled Template",
+      days: patch.days ?? existing?.days ?? [],
+      createdAt: existing?.createdAt ?? Date.now(),
+    };
+    await putOne("weekTemplates", t);
+    set((s) => ({
+      weekTemplates: existing ? s.weekTemplates.map((x) => (x.id === t.id ? t : x)) : [...s.weekTemplates, t],
+    }));
+    return t;
+  },
+  deleteWeekTemplate: async (id) => {
+    await delOne("weekTemplates", id);
+    set((s) => ({ weekTemplates: s.weekTemplates.filter((x) => x.id !== id) }));
+  },
+
+  applyWeekTemplate: async (templateId, weekStart) => {
+    const tpl = get().weekTemplates.find((t) => t.id === templateId);
+    if (!tpl) return;
+    const sun = startOfDay(new Date(weekStart));
+    for (const day of tpl.days) {
+      const dayDate = addDays(sun, day.dayOfWeek);
+      // create time blocks
+      for (const b of day.blocks) {
+        const blockStart = new Date(dayDate);
+        blockStart.setHours(b.startHour, b.startMin, 0, 0);
+        await get().upsertBlock({
+          title: b.title,
+          type: b.type,
+          startTime: blockStart.getTime(),
+          endTime: blockStart.getTime() + b.durationMin * 60_000,
+        });
+      }
+      // create tasks with deadline on that day
+      for (const t of day.tasks) {
+        const deadline = new Date(dayDate);
+        deadline.setHours(23, 59, 0, 0);
+        await get().upsertTask({
+          title: t.title,
+          effort: t.effort,
+          priority: t.priority,
+          projectId: t.projectId,
+          tagIds: t.tagIds,
+          deadline: deadline.getTime(),
+        });
+      }
+    }
+  },
 }));
 
 function nextOccurrence(from: number, r: FinanceRecurrence): number {
@@ -852,3 +953,4 @@ async function seedFinance() {
     deadline: now + 90 * 86400000, color: "#d4a574", createdAt: now,
   });
 }
+

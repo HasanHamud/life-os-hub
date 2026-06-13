@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Plus, Minus, Trash2, Pencil } from "lucide-react";
+import { ChartCard } from "@/components/common/ChartCard";
 
 export const Route = createFileRoute("/analytics")({
   head: () => ({ meta: [
@@ -489,11 +490,4 @@ function Stat({ label, value, suffix, hint }: { label: string; value: string; su
   );
 }
 
-function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border bg-card p-4">
-      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">{title}</div>
-      {children}
-    </div>
-  );
-}
+// ChartCard imported from "@/components/common/ChartCard"

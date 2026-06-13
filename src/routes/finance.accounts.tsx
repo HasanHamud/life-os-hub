@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "@/core/store";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -115,13 +115,17 @@ function AccountDialog({
   const [color, setColor] = useState("#d4a574");
 
   // sync on open
-  if (open && account && name === "" && account.name !== "") {
-    setName(account.name);
-    setType(account.type);
-    setInitialBalance(String(account.initialBalance));
-    setCurrency(account.currency);
-    setColor(account.color ?? "#d4a574");
-  }
+  useEffect(() => {
+    if (open && account) {
+      setName(account.name);
+      setType(account.type);
+      setInitialBalance(String(account.initialBalance));
+      setCurrency(account.currency);
+      setColor(account.color ?? "#d4a574");
+    } else if (!open) {
+      reset();
+    }
+  }, [open, account]);
 
   const reset = () => { setName(""); setType("cash"); setInitialBalance("0"); setCurrency("USD"); setColor("#d4a574"); };
 

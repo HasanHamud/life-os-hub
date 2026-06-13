@@ -8,6 +8,7 @@ import { TransactionDialog } from "@/components/finance/TransactionDialog";
 import { TrendingUp, TrendingDown, Wallet, PiggyBank, Plus, ArrowRightLeft, Sparkles } from "lucide-react";
 import { format, isWeekend, startOfMonth, endOfMonth } from "date-fns";
 import { Input } from "@/components/ui/input";
+import { Card, EmptyState } from "@/components/common/Card";
 
 export const Route = createFileRoute("/finance/")({
   head: () => ({
@@ -92,7 +93,7 @@ function FinanceDashboard() {
         <section className="lg:col-span-2 space-y-6">
           <Card title="Accounts" right={<Link to="/finance/accounts" className="text-xs text-primary hover:underline">Manage →</Link>}>
             {accounts.length === 0
-              ? <Empty>No accounts yet.</Empty>
+              ? <EmptyState>No accounts yet.</EmptyState>
               : <div className="grid sm:grid-cols-2 gap-2">
                   {accounts.map((a) => (
                     <div key={a.id} className="rounded-lg border bg-muted/20 p-3 flex items-center gap-3">
@@ -111,7 +112,7 @@ function FinanceDashboard() {
 
           <Card title="Recent transactions" right={<Link to="/finance/transactions" className="text-xs text-primary hover:underline">All →</Link>}>
             {recentTx.length === 0
-              ? <Empty>No transactions yet.</Empty>
+              ? <EmptyState>No transactions yet.</EmptyState>
               : <div className="divide-y divide-border/50">
                   {recentTx.map((t) => {
                     const cat = categories.find((c) => c.id === t.categoryId);
@@ -152,7 +153,7 @@ function FinanceDashboard() {
           </Card>
 
           <Card title="Top expense categories">
-            {topExpense.length === 0 ? <Empty>No expenses this month.</Empty>
+            {topExpense.length === 0 ? <EmptyState>No expenses this month.</EmptyState>
               : <div className="space-y-2 px-2 pb-1">
                   {topExpense.map((c) => {
                     const pct = expenses ? Math.round((c.total / expenses) * 100) : 0;
@@ -172,7 +173,7 @@ function FinanceDashboard() {
           </Card>
 
           <Card title="Savings goals" right={<Link to="/finance/savings" className="text-xs text-primary hover:underline">All →</Link>}>
-            {savingsGoals.length === 0 ? <Empty>No goals set.</Empty>
+            {savingsGoals.length === 0 ? <EmptyState>No goals set.</EmptyState>
               : <div className="space-y-3 px-2 pb-1">
                   {savingsGoals.slice(0, 3).map((g) => {
                     const pct = g.targetAmount ? Math.min(100, Math.round((g.currentAmount / g.targetAmount) * 100)) : 0;
@@ -229,26 +230,6 @@ function Stat({ icon: Icon, label, value, accent }: { icon: any; label: string; 
     </div>
   );
 }
-
-function Card({ title, subtitle, right, children }: { title: string; subtitle?: string; right?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border bg-card">
-      <div className="flex items-end justify-between gap-3 px-4 pt-4 pb-2">
-        <div>
-          <h3 className="text-sm font-semibold">{title}</h3>
-          {subtitle && <p className="text-[11px] text-muted-foreground">{subtitle}</p>}
-        </div>
-        {right}
-      </div>
-      <div className="p-2">{children}</div>
-    </div>
-  );
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return <div className="text-center py-6 text-xs text-muted-foreground">{children}</div>;
-}
-
 
 function RateEditor() {
   const { settings, updateSettings } = useStore();

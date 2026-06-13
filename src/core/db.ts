@@ -1,165 +1,121 @@
-import { openDB, type IDBPDatabase, type DBSchema } from "idb";
-import type {
-  Task, TimeBlock, Project, Goal, Session, Tag, LogEntry, Snapshot, Settings, Note,
-} from "./types";
-import type {
-  Account, Transaction, Category, Budget, SavingsGoal,
-} from "./finance-types";
-import type {
-  Concept, LearningInsight, Problem, LearningSession, RotationEntry,
-} from "./learn-types";
+import { supabase, getUserId } from "./supabase";
 
-interface LifeOSDB extends DBSchema {
-  tasks: { key: string; value: Task; indexes: { byStatus: string; byProject: string; byGoal: string; byDeadline: number } };
-  timeBlocks: { key: string; value: TimeBlock; indexes: { byStart: number; byTask: string } };
-  projects: { key: string; value: Project };
-  goals: { key: string; value: Goal };
-  sessions: { key: string; value: Session; indexes: { byStart: number; byTask: string } };
-  tags: { key: string; value: Tag };
-  logs: { key: string; value: LogEntry; indexes: { byDate: string } };
-  snapshots: { key: string; value: Snapshot };
-  settings: { key: string; value: Settings };
-  // Finance
-  accounts: { key: string; value: Account };
-  transactions: { key: string; value: Transaction; indexes: { byDate: number; byAccount: string; byCategory: string } };
-  categories: { key: string; value: Category; indexes: { byType: string } };
-  budgets: { key: string; value: Budget; indexes: { byCategory: string } };
-  savingsGoals: { key: string; value: SavingsGoal };
-  notes: { key: string; value: Note; indexes: { byUpdated: number; byStatus: string } };
-  concepts: { key: string; value: Concept; indexes: { bySubject: string; byPhase: number; byClarity: number; byTopic: string } };
-  insights: { key: string; value: LearningInsight; indexes: { byDate: string; bySubject: string; byNextReview: number } };
-  problems: { key: string; value: Problem; indexes: { bySubject: string; byPattern: string; byDifficulty: number; byCompleted: number } };
-  learningSessions: { key: string; value: LearningSession; indexes: { byDate: string; bySubject: string } };
-  rotationEntries: { key: string; value: RotationEntry; indexes: { byDay: number } };
+const TABLE_MAP: Record<string, string> = {
+  tasks: "tasks",
+  timeBlocks: "time_blocks",
+  projects: "projects",
+  goals: "goals",
+  sessions: "sessions",
+  tags: "tags",
+  logs: "logs",
+  settings: "settings",
+  accounts: "accounts",
+  transactions: "transactions",
+  categories: "categories",
+  budgets: "budgets",
+  savingsGoals: "savings_goals",
+  notes: "notes",
+  concepts: "concepts",
+  insights: "insights",
+  problems: "problems",
+  learningSessions: "learning_sessions",
+  rotationEntries: "rotation_entries",
+  weeklyPlans: "weekly_plans",
+  weekTemplates: "week_templates",
+};
+
+type Stores = keyof typeof TABLE_MAP;
+
+function tableName(store: Stores): string {
+  return TABLE_MAP[store];
 }
 
-const DB_NAME = "life-os";
-const DB_VERSION = 5;
-
-let dbPromise: Promise<IDBPDatabase<LifeOSDB>> | null = null;
-
-export function getDB() {
-  if (typeof window === "undefined") {
-    return Promise.reject(new Error("IndexedDB unavailable on server"));
-  }
-  if (!dbPromise) {
-    dbPromise = openDB<LifeOSDB>(DB_NAME, DB_VERSION, {
-      upgrade(db, oldVersion) {
-        if (oldVersion < 1) {
-          const tasks = db.createObjectStore("tasks", { keyPath: "id" });
-          tasks.createIndex("byStatus", "status");
-          tasks.createIndex("byProject", "projectId");
-          tasks.createIndex("byGoal", "goalId");
-          tasks.createIndex("byDeadline", "deadline");
-
-          const tb = db.createObjectStore("timeBlocks", { keyPath: "id" });
-          tb.createIndex("byStart", "startTime");
-          tb.createIndex("byTask", "taskId");
-
-          db.createObjectStore("projects", { keyPath: "id" });
-          db.createObjectStore("goals", { keyPath: "id" });
-
-          const ses = db.createObjectStore("sessions", { keyPath: "id" });
-          ses.createIndex("byStart", "startTime");
-          ses.createIndex("byTask", "taskId");
-
-          db.createObjectStore("tags", { keyPath: "id" });
-
-          const logs = db.createObjectStore("logs", { keyPath: "id" });
-          logs.createIndex("byDate", "date");
-
-          db.createObjectStore("snapshots", { keyPath: "id" });
-          db.createObjectStore("settings", { keyPath: "id" });
-        }
-        if (oldVersion < 2) {
-          db.createObjectStore("accounts", { keyPath: "id" });
-
-          const tx = db.createObjectStore("transactions", { keyPath: "id" });
-          tx.createIndex("byDate", "date");
-          tx.createIndex("byAccount", "accountId");
-          tx.createIndex("byCategory", "categoryId");
-
-          const cats = db.createObjectStore("categories", { keyPath: "id" });
-          cats.createIndex("byType", "type");
-
-          const budgets = db.createObjectStore("budgets", { keyPath: "id" });
-          budgets.createIndex("byCategory", "categoryId");
-
-          db.createObjectStore("savingsGoals", { keyPath: "id" });
-        }
-        if (oldVersion < 3) {
-          const notes = db.createObjectStore("notes", { keyPath: "id" });
-          notes.createIndex("byUpdated", "updatedAt");
-          notes.createIndex("byStatus", "status");
-        }
-        if (oldVersion < 4) {
-          const concepts = db.createObjectStore("concepts", { keyPath: "id" });
-          concepts.createIndex("bySubject", "subject");
-          concepts.createIndex("byPhase", "phase");
-          concepts.createIndex("byClarity", "clarityRating");
-          concepts.createIndex("byTopic", "topic");
-
-          const insights = db.createObjectStore("insights", { keyPath: "id" });
-          insights.createIndex("byDate", "date");
-          insights.createIndex("bySubject", "subject");
-          insights.createIndex("byNextReview", "nextReviewAt");
-
-          const problems = db.createObjectStore("problems", { keyPath: "id" });
-          problems.createIndex("bySubject", "subject");
-          problems.createIndex("byPattern", "patternClass");
-          problems.createIndex("byDifficulty", "difficulty");
-          problems.createIndex("byCompleted", "completed");
-
-          const sessions = db.createObjectStore("learningSessions", { keyPath: "id" });
-          sessions.createIndex("byDate", "date");
-          sessions.createIndex("bySubject", "subject");
-        }
-        if (oldVersion < 5) {
-          const rotation = db.createObjectStore("rotationEntries", { keyPath: "id" });
-          rotation.createIndex("byDay", "dayOfWeek");
-        }
-      },
-    });
-  }
-  return dbPromise;
+function camelToSnakeKey(key: string): string {
+  return key.replace(/[A-Z]/g, (l) => `_${l.toLowerCase()}`);
 }
 
-// Generic CRUD helpers
-type Stores =
-  | "tasks" | "timeBlocks" | "projects" | "goals" | "sessions" | "tags" | "logs" | "snapshots" | "settings"
-  | "accounts" | "transactions" | "categories" | "budgets" | "savingsGoals" | "notes"
-  | "concepts" | "insights" | "problems" | "learningSessions" | "rotationEntries";
+function snakeToCamelKey(key: string): string {
+  return key.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
+}
+
+function toSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const key of Object.keys(obj)) {
+    result[camelToSnakeKey(key)] = obj[key];
+  }
+  return result;
+}
+
+function toCamelCase(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const key of Object.keys(obj)) {
+    result[snakeToCamelKey(key)] = obj[key];
+  }
+  return result;
+}
 
 export async function getAll<T>(store: Stores): Promise<T[]> {
-  const db = await getDB();
-  return (await db.getAll(store as any)) as T[];
+  const userId = await getUserId();
+  if (!userId) return [];
+  const table = tableName(store);
+  const { data } = await supabase
+    .from(table)
+    .select("*")
+    .eq("user_id", userId);
+  return (data ?? []).map((row: any) => toCamelCase(row) as T);
 }
 
 export async function getOne<T>(store: Stores, id: string): Promise<T | undefined> {
-  const db = await getDB();
-  return (await db.get(store as any, id)) as T | undefined;
+  const userId = await getUserId();
+  if (!userId) return undefined;
+  const table = tableName(store);
+  const { data } = await supabase
+    .from(table)
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .single();
+  if (!data) return undefined;
+  return toCamelCase(data as any) as T;
 }
 
 export async function putOne<T extends { id: string }>(store: Stores, value: T): Promise<T> {
-  const db = await getDB();
-  await db.put(store as any, value as any);
+  const userId = await getUserId();
+  if (!userId) throw new Error("Not authenticated");
+  const table = tableName(store);
+  const snake = toSnakeCase(value as any);
+  const payload = { ...snake, user_id: userId };
+  const { error } = await supabase.from(table).upsert(payload, { onConflict: "id" });
+  if (error) throw error;
   return value;
 }
 
 export async function delOne(store: Stores, id: string): Promise<void> {
-  const db = await getDB();
-  await db.delete(store as any, id);
+  const userId = await getUserId();
+  if (!userId) throw new Error("Not authenticated");
+  const table = tableName(store);
+  const { error } = await supabase
+    .from(table)
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
+  if (error) throw error;
 }
 
 const ALL_STORES: Stores[] = [
-  "tasks", "timeBlocks", "projects", "goals", "sessions", "tags", "logs", "snapshots", "settings",
+  "tasks", "timeBlocks", "projects", "goals", "sessions", "tags", "logs", "settings",
   "accounts", "transactions", "categories", "budgets", "savingsGoals", "notes",
   "concepts", "insights", "problems", "learningSessions", "rotationEntries",
+  "weeklyPlans", "weekTemplates",
 ];
 
 export async function clearAll(): Promise<void> {
-  const db = await getDB();
-  await Promise.all(ALL_STORES.map((s) => db.clear(s as any)));
+  const userId = await getUserId();
+  if (!userId) return;
+  for (const store of ALL_STORES) {
+    const table = tableName(store);
+    await supabase.from(table).delete().eq("user_id", userId);
+  }
 }
 
 export async function exportAll() {
@@ -170,13 +126,15 @@ export async function exportAll() {
 }
 
 export async function importAll(data: any) {
-  const db = await getDB();
-  for (const s of ALL_STORES) {
-    if (Array.isArray(data[s])) {
-      const tx = db.transaction(s as any, "readwrite");
-      await tx.store.clear();
-      for (const item of data[s]) await tx.store.put(item);
-      await tx.done;
+  const userId = await getUserId();
+  if (!userId) throw new Error("Not authenticated");
+  for (const store of ALL_STORES) {
+    const items = data[store];
+    if (Array.isArray(items) && items.length > 0) {
+      const table = tableName(store);
+      const rows = items.map((item: any) => ({ ...toSnakeCase(item), user_id: userId }));
+      const { error } = await supabase.from(table).upsert(rows, { onConflict: "id" });
+      if (error) throw error;
     }
   }
 }

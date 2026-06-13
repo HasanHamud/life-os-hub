@@ -110,15 +110,6 @@
   --priority-high: oklch(0.72 0.16 45);
   --priority-urgent: oklch(0.65 0.22 25);
 
-  --chart-1: oklch(0.78 0.13 70);
-  --chart-2: oklch(0.70 0.13 145);
-  --chart-3: oklch(0.70 0.10 230);
-  --chart-4: oklch(0.72 0.16 45);
-  --chart-5: oklch(0.65 0.18 320);
-}
-
-.dark {
-  /* same as :root — app is dark-first */
 }
 
 @layer base {
@@ -155,11 +146,6 @@
 }
 
 @layer utilities {
-  .glass {
-    background: color-mix(in oklab, var(--surface) 70%, transparent);
-    backdrop-filter: blur(12px);
-  }
-  .text-balance { text-wrap: balance; }
   .text-pretty { text-wrap: pretty; }
 
   .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "@/core/store";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -102,11 +102,15 @@ function BudgetDialog({
   const [limit, setLimit] = useState("");
   const [period, setPeriod] = useState<BudgetPeriod>("monthly");
 
-  if (open && budget && categoryId === "" && budget.categoryId) {
-    setCategoryId(budget.categoryId);
-    setLimit(String(budget.limitAmount));
-    setPeriod(budget.period);
-  }
+  useEffect(() => {
+    if (open && budget) {
+      setCategoryId(budget.categoryId);
+      setLimit(String(budget.limitAmount));
+      setPeriod(budget.period);
+    } else if (!open) {
+      reset();
+    }
+  }, [open, budget]);
 
   const reset = () => { setCategoryId(""); setLimit(""); setPeriod("monthly"); };
 

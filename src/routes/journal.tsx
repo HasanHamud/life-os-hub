@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "@/core/store";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -28,14 +28,11 @@ function JournalPage() {
   const [taskId, setTaskId] = useState<string>(todayLog?.relatedTaskId ?? "none");
 
   // resync if log loaded later
-  useMemo(() => {
-    if (todayLog) {
-      setContent(todayLog.content);
-      setMood(String(todayLog.mood ?? ""));
-      setEnergy(String(todayLog.energy ?? ""));
-      setTaskId(todayLog.relatedTaskId ?? "none");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    setContent(todayLog?.content ?? "");
+    setMood(String(todayLog?.mood ?? ""));
+    setEnergy(String(todayLog?.energy ?? ""));
+    setTaskId(todayLog?.relatedTaskId ?? "none");
   }, [todayLog?.id]);
 
   const save = async () => {

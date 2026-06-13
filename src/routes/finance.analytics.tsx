@@ -8,6 +8,7 @@ import {
   LineChart, Line, PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { fmtMoney, savingsRate, topCategories, convertCurrency } from "@/core/finance-utils";
+import { ChartCard } from "@/components/common/ChartCard";
 
 export const Route = createFileRoute("/finance/analytics")({
   head: () => ({ meta: [{ title: "Finance Analytics — Life OS" }] }),
@@ -168,11 +169,4 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
   );
 }
 
-function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border bg-card p-4">
-      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">{title}</div>
-      {children}
-    </div>
-  );
-}
+// ChartCard imported from "@/components/common/ChartCard"

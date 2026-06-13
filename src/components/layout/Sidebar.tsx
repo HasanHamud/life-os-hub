@@ -3,11 +3,20 @@ import {
   LayoutDashboard, ListChecks, Calendar, Clock, Target, FolderKanban,
   Timer, BarChart3, Tag as TagIcon, BookOpen, Settings as SettingsIcon, Focus, Watch,
   Wallet, ArrowLeftRight, Layers, PiggyBank, LineChart, StickyNote,
-  GraduationCap, Lightbulb, Brain, Code, TrendingUp,
+  GraduationCap, Lightbulb, Brain, Code, TrendingUp, CalendarRange,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const NAV = [
+interface NavItemConfig {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  exact?: boolean;
+  accent?: "primary" | "warning";
+}
+
+const NAV: NavItemConfig[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/tasks", label: "Tasks", icon: ListChecks },
   { to: "/time", label: "Time Blocks", icon: Clock },
@@ -21,9 +30,9 @@ const NAV = [
   { to: "/journal", label: "Journal", icon: BookOpen },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/tags", label: "Tags", icon: TagIcon },
-] as const;
+];
 
-const LEARN_NAV: { to: string; label: string; icon: any; exact?: boolean }[] = [
+const LEARN_NAV: NavItemConfig[] = [
   { to: "/learn", label: "Learn", icon: GraduationCap, exact: true },
   { to: "/learn/insights", label: "Insights", icon: Lightbulb },
   { to: "/learn/concepts", label: "Concepts", icon: Brain },
@@ -31,18 +40,46 @@ const LEARN_NAV: { to: string; label: string; icon: any; exact?: boolean }[] = [
   { to: "/learn/progress", label: "Progress", icon: TrendingUp },
 ];
 
-const FINANCE_NAV: { to: string; label: string; icon: any; exact?: boolean }[] = [
-  { to: "/finance", label: "Overview", icon: Wallet, exact: true },
-  { to: "/finance/transactions", label: "Transactions", icon: ArrowLeftRight },
-  { to: "/finance/accounts", label: "Accounts", icon: Wallet },
-  { to: "/finance/categories", label: "Categories", icon: Layers },
-  { to: "/finance/budgets", label: "Budgets", icon: Target },
-  { to: "/finance/savings", label: "Savings", icon: PiggyBank },
-  { to: "/finance/analytics", label: "Analytics", icon: LineChart },
+const FINANCE_NAV: NavItemConfig[] = [
+  { to: "/finance", label: "Overview", icon: Wallet, exact: true, accent: "warning" },
+  { to: "/finance/transactions", label: "Transactions", icon: ArrowLeftRight, accent: "warning" },
+  { to: "/finance/accounts", label: "Accounts", icon: Wallet, accent: "warning" },
+  { to: "/finance/categories", label: "Categories", icon: Layers, accent: "warning" },
+  { to: "/finance/budgets", label: "Budgets", icon: Target, accent: "warning" },
+  { to: "/finance/savings", label: "Savings", icon: PiggyBank, accent: "warning" },
+  { to: "/finance/analytics", label: "Analytics", icon: LineChart, accent: "warning" },
 ];
 
+function NavLink({ to, label, icon: Icon, exact, accent = "primary", currentPath }: NavItemConfig & { currentPath: string }) {
+  const active = exact ? currentPath === to : currentPath.startsWith(to);
+  const color = accent === "warning" ? "text-warning" : "text-primary";
+  return (
+    <Link
+      to={to}
+      className={cn(
+        "group flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+        "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+        active
+          ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+          : "text-sidebar-foreground/80"
+      )}
+    >
+      <Icon className={cn("h-4 w-4", active ? color : "text-muted-foreground group-hover:text-foreground")} />
+      <span>{label}</span>
+    </Link>
+  );
+}
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="px-3 pt-5 pb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
+      {children}
+    </div>
+  );
+}
+
 export function Sidebar() {
-  const path = useRouterState({ select: (s) => s.location.pathname });
+  const currentPath = useRouterState({ select: (s) => s.location.pathname });
 
   return (
     <aside className="hidden md:flex w-60 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
@@ -57,95 +94,38 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-2 pb-4 scrollbar-thin">
-        {NAV.map(({ to, label, icon: Icon }) => {
-          const active = to === "/" ? path === "/" : path.startsWith(to);
-          return (
-            <Link
-              key={to}
-              to={to}
-              className={cn(
-                "group flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                active
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-sidebar-foreground/80"
-              )}
-            >
-              <Icon className={cn("h-4 w-4", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-              <span>{label}</span>
-            </Link>
-          );
-        })}
+        {NAV.map((item) => (
+          <NavLink key={item.to} {...item} currentPath={currentPath} />
+        ))}
 
-        <div className="px-3 pt-5 pb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
-          Learning
-        </div>
-        {LEARN_NAV.map(({ to, label, icon: Icon, exact }) => {
-          const active = exact ? path === to : path.startsWith(to);
-          return (
-            <Link
-              key={to}
-              to={to}
-              className={cn(
-                "group flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                active
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-sidebar-foreground/80"
-              )}
-            >
-              <Icon className={cn("h-4 w-4", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-              <span>{label}</span>
-            </Link>
-          );
-        })}
+        <SectionHeading>Schedule Planning</SectionHeading>
+        <NavLink to="/weekly-plan" label="Weekly Plan" icon={CalendarRange} currentPath={currentPath} />
 
-        <div className="px-3 pt-5 pb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
-          Finance
-        </div>
-        {FINANCE_NAV.map(({ to, label, icon: Icon, exact }) => {
-          const active = exact ? path === to : path.startsWith(to);
-          return (
-            <Link
-              key={to}
-              to={to}
-              className={cn(
-                "group flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                active
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-sidebar-foreground/80"
-              )}
-            >
-              <Icon className={cn("h-4 w-4", active ? "text-warning" : "text-muted-foreground group-hover:text-foreground")} />
-              <span>{label}</span>
-            </Link>
-          );
-        })}
+        <SectionHeading>Learning</SectionHeading>
+        {LEARN_NAV.map((item) => (
+          <NavLink key={item.to} {...item} currentPath={currentPath} />
+        ))}
 
-        <div className="px-3 pt-5 pb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
-          Settings
-        </div>
-        <Link
-          to="/settings"
-          className={cn(
-            "group flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-            "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-            path.startsWith("/settings")
-              ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-              : "text-sidebar-foreground/80"
-          )}
-        >
-          <SettingsIcon className={cn("h-4 w-4", path.startsWith("/settings") ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-          <span>Settings</span>
-        </Link>
+        <SectionHeading>Finance</SectionHeading>
+        {FINANCE_NAV.map((item) => (
+          <NavLink key={item.to} {...item} currentPath={currentPath} />
+        ))}
+
+        <SectionHeading>Settings</SectionHeading>
+        <NavLink to="/settings" label="Settings" icon={SettingsIcon} currentPath={currentPath} />
       </nav>
 
       <div className="px-4 py-3 border-t text-[11px] text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-success" />
-          Local-first · IndexedDB
-        </div>
+        <button
+          onClick={async () => {
+            await import("@/core/supabase").then((m) => m.supabase.auth.signOut());
+            window.location.href = "/auth";
+          }}
+          className="flex items-center gap-2 hover:text-foreground transition-colors w-full text-left"
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+          Sign out
+        </button>
       </div>
     </aside>
   );

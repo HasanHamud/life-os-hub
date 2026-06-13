@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "@/core/store";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -117,15 +117,19 @@ function SavingsDialog({
   const [linkedGoalId, setLinkedGoalId] = useState("none");
   const [color, setColor] = useState("#90b890");
 
-  if (open && goal && title === "" && goal.title) {
-    setTitle(goal.title);
-    setTarget(String(goal.targetAmount));
-    setCurrent(String(goal.currentAmount));
-    setCurrency(goal.currency ?? "USD");
-    setDeadline(goal.deadline ? format(goal.deadline, "yyyy-MM-dd") : "");
-    setLinkedGoalId(goal.linkedGoalId ?? "none");
-    setColor(goal.color ?? "#90b890");
-  }
+  useEffect(() => {
+    if (open && goal) {
+      setTitle(goal.title);
+      setTarget(String(goal.targetAmount));
+      setCurrent(String(goal.currentAmount));
+      setCurrency(goal.currency ?? "USD");
+      setDeadline(goal.deadline ? format(goal.deadline, "yyyy-MM-dd") : "");
+      setLinkedGoalId(goal.linkedGoalId ?? "none");
+      setColor(goal.color ?? "#90b890");
+    } else if (!open) {
+      reset();
+    }
+  }, [open, goal]);
 
   const reset = () => { setTitle(""); setTarget(""); setCurrent("0"); setCurrency("USD"); setDeadline(""); setLinkedGoalId("none"); setColor("#90b890"); };
 

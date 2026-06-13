@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "@/core/store";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -185,22 +185,20 @@ function ProjectDialog({
   const [category, setCategory] = useState<string>("");
   const [customCat, setCustomCat] = useState("");
 
-  useState(() => {
+  // Re-sync on open change
+  useEffect(() => {
     if (open) {
       setName(project?.name ?? "");
       setDescription(project?.description ?? "");
       setColor(project?.color ?? "#d4a574");
       setCategory(project?.category ?? "");
+    } else {
+      setName("");
+      setDescription("");
+      setColor("#d4a574");
+      setCategory("");
     }
-  });
-
-  // Re-sync on open change
-  if (open && project && name === "" && project.name) {
-    setName(project.name);
-    setDescription(project.description ?? "");
-    setColor(project.color ?? "#d4a574");
-    setCategory(project.category ?? "");
-  }
+  }, [open, project]);
 
   const isPreset = !category || (PROJECT_CATEGORY_PRESETS as readonly string[]).includes(category);
 

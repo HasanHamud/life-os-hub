@@ -111,7 +111,7 @@ function TimePage() {
                   if (!t) return;
                   const dur = (t.effort ?? 60) * 60_000;
                   await upsertBlock({
-                    title: t.title, taskId: t.id, type: "deep",
+                    title: t.title, taskId: t.id, type: "work",
                     startTime: start, endTime: start + dur,
                   });
                   toast.success(`Scheduled "${t.title}" at ${format(start, "HH:mm")}`);
@@ -249,9 +249,11 @@ function DayColumn({
         const height = Math.max(20, timeToY(b.endTime) - top);
         const linked = b.taskId ? tasks.find((t) => t.id === b.taskId) : undefined;
         const colors: Record<BlockType, string> = {
-          deep: "bg-primary/15 border-l-primary text-foreground",
-          shallow: "bg-info/15 border-l-info text-foreground",
+          work: "bg-primary/15 border-l-primary text-foreground",
+          freelance: "bg-info/15 border-l-info text-foreground",
           personal: "bg-success/15 border-l-success text-foreground",
+          studies: "bg-warning/15 border-l-warning text-foreground",
+          university: "bg-destructive/15 border-l-destructive text-foreground",
         };
         const isMoving = moving?.id === b.id;
         return (
@@ -309,7 +311,7 @@ function BlockDialog({
   const end = block?.endTime ?? defaultEnd ?? start + 3600000;
 
   const [title, setTitle] = useState(block?.title ?? "Time Block");
-  const [type, setType] = useState<BlockType>(block?.type ?? "deep");
+  const [type, setType] = useState<BlockType>(block?.type ?? "work");
   const [taskId, setTaskId] = useState<string>(block?.taskId ?? "none");
   const [s, setS] = useState(format(start, "yyyy-MM-dd'T'HH:mm"));
   const [e, setE] = useState(format(end, "yyyy-MM-dd'T'HH:mm"));
@@ -320,7 +322,7 @@ function BlockDialog({
 
   useEffect(() => {
     setTitle(block?.title ?? "Time Block");
-    setType(block?.type ?? "deep");
+    setType(block?.type ?? "work");
     setTaskId(block?.taskId ?? "none");
     setS(format(start, "yyyy-MM-dd'T'HH:mm"));
     setE(format(end, "yyyy-MM-dd'T'HH:mm"));
@@ -363,9 +365,11 @@ function BlockDialog({
               <Select value={type} onValueChange={(v) => setType(v as BlockType)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="deep">Deep work</SelectItem>
-                  <SelectItem value="shallow">Shallow / admin</SelectItem>
+                  <SelectItem value="work">Work</SelectItem>
+                  <SelectItem value="freelance">Freelance</SelectItem>
                   <SelectItem value="personal">Personal</SelectItem>
+                  <SelectItem value="studies">Studies</SelectItem>
+                  <SelectItem value="university">University</SelectItem>
                 </SelectContent>
               </Select>
             </div>

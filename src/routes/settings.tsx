@@ -49,8 +49,8 @@ function SettingsPage() {
       await importAll(data);
       await load();
       toast.success("Imported");
-    } catch (e: any) {
-      toast.error("Import failed: " + e.message);
+    } catch (e: unknown) {
+      toast.error("Import failed: " + (e instanceof Error ? e.message : "Unknown error"));
     }
   };
 

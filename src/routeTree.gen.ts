@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WeeklyPlanRouteImport } from './routes/weekly-plan'
 import { Route as TimeRouteImport } from './routes/time'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as TagsRouteImport } from './routes/tags'
@@ -23,6 +24,7 @@ import { Route as GoalsRouteImport } from './routes/goals'
 import { Route as FocusRouteImport } from './routes/focus'
 import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LearnIndexRouteImport } from './routes/learn.index'
@@ -38,6 +40,11 @@ import { Route as FinanceBudgetsRouteImport } from './routes/finance.budgets'
 import { Route as FinanceAnalyticsRouteImport } from './routes/finance.analytics'
 import { Route as FinanceAccountsRouteImport } from './routes/finance.accounts'
 
+const WeeklyPlanRoute = WeeklyPlanRouteImport.update({
+  id: '/weekly-plan',
+  path: '/weekly-plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TimeRoute = TimeRouteImport.update({
   id: '/time',
   path: '/time',
@@ -106,6 +113,11 @@ const FinanceRoute = FinanceRouteImport.update({
 const CalendarRoute = CalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
@@ -182,6 +194,7 @@ const FinanceAccountsRoute = FinanceAccountsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
+  '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/finance': typeof FinanceRouteWithChildren
   '/focus': typeof FocusRoute
@@ -196,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/tags': typeof TagsRoute
   '/tasks': typeof TasksRoute
   '/time': typeof TimeRoute
+  '/weekly-plan': typeof WeeklyPlanRoute
   '/finance/accounts': typeof FinanceAccountsRoute
   '/finance/analytics': typeof FinanceAnalyticsRoute
   '/finance/budgets': typeof FinanceBudgetsRoute
@@ -212,6 +226,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
+  '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/focus': typeof FocusRoute
   '/goals': typeof GoalsRoute
@@ -224,6 +239,7 @@ export interface FileRoutesByTo {
   '/tags': typeof TagsRoute
   '/tasks': typeof TasksRoute
   '/time': typeof TimeRoute
+  '/weekly-plan': typeof WeeklyPlanRoute
   '/finance/accounts': typeof FinanceAccountsRoute
   '/finance/analytics': typeof FinanceAnalyticsRoute
   '/finance/budgets': typeof FinanceBudgetsRoute
@@ -241,6 +257,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
+  '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/finance': typeof FinanceRouteWithChildren
   '/focus': typeof FocusRoute
@@ -255,6 +272,7 @@ export interface FileRoutesById {
   '/tags': typeof TagsRoute
   '/tasks': typeof TasksRoute
   '/time': typeof TimeRoute
+  '/weekly-plan': typeof WeeklyPlanRoute
   '/finance/accounts': typeof FinanceAccountsRoute
   '/finance/analytics': typeof FinanceAnalyticsRoute
   '/finance/budgets': typeof FinanceBudgetsRoute
@@ -273,6 +291,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/analytics'
+    | '/auth'
     | '/calendar'
     | '/finance'
     | '/focus'
@@ -287,6 +306,7 @@ export interface FileRouteTypes {
     | '/tags'
     | '/tasks'
     | '/time'
+    | '/weekly-plan'
     | '/finance/accounts'
     | '/finance/analytics'
     | '/finance/budgets'
@@ -303,6 +323,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/analytics'
+    | '/auth'
     | '/calendar'
     | '/focus'
     | '/goals'
@@ -315,6 +336,7 @@ export interface FileRouteTypes {
     | '/tags'
     | '/tasks'
     | '/time'
+    | '/weekly-plan'
     | '/finance/accounts'
     | '/finance/analytics'
     | '/finance/budgets'
@@ -331,6 +353,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/analytics'
+    | '/auth'
     | '/calendar'
     | '/finance'
     | '/focus'
@@ -345,6 +368,7 @@ export interface FileRouteTypes {
     | '/tags'
     | '/tasks'
     | '/time'
+    | '/weekly-plan'
     | '/finance/accounts'
     | '/finance/analytics'
     | '/finance/budgets'
@@ -362,6 +386,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalyticsRoute: typeof AnalyticsRoute
+  AuthRoute: typeof AuthRoute
   CalendarRoute: typeof CalendarRoute
   FinanceRoute: typeof FinanceRouteWithChildren
   FocusRoute: typeof FocusRoute
@@ -376,10 +401,18 @@ export interface RootRouteChildren {
   TagsRoute: typeof TagsRoute
   TasksRoute: typeof TasksRoute
   TimeRoute: typeof TimeRoute
+  WeeklyPlanRoute: typeof WeeklyPlanRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/weekly-plan': {
+      id: '/weekly-plan'
+      path: '/weekly-plan'
+      fullPath: '/weekly-plan'
+      preLoaderRoute: typeof WeeklyPlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/time': {
       id: '/time'
       path: '/time'
@@ -476,6 +509,13 @@ declare module '@tanstack/react-router' {
       path: '/calendar'
       fullPath: '/calendar'
       preLoaderRoute: typeof CalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analytics': {
@@ -623,6 +663,7 @@ const LearnRouteWithChildren = LearnRoute._addFileChildren(LearnRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyticsRoute: AnalyticsRoute,
+  AuthRoute: AuthRoute,
   CalendarRoute: CalendarRoute,
   FinanceRoute: FinanceRouteWithChildren,
   FocusRoute: FocusRoute,
@@ -637,16 +678,8 @@ const rootRouteChildren: RootRouteChildren = {
   TagsRoute: TagsRoute,
   TasksRoute: TasksRoute,
   TimeRoute: TimeRoute,
+  WeeklyPlanRoute: WeeklyPlanRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

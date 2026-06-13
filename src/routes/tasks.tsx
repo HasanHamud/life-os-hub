@@ -48,7 +48,7 @@ function TasksPage() {
 
   const filtered = useMemo(() => {
     return tasks.filter((t) => {
-      if (t.parentTaskId) return false; // show subtasks under parents in detail
+      if (t.parentTaskId) return false;
       if (!showArchived && t.archived) return false;
       if (showArchived && !t.archived) return false;
       if (query && !t.title.toLowerCase().includes(query.toLowerCase())) return false;

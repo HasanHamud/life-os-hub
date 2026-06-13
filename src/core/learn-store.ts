@@ -16,7 +16,7 @@ interface LearnState {
   // Concepts
   getConcepts: () => Concept[];
   getConcept: (id: string) => Concept | undefined;
-  upsertConcept: (patch: Partial<Concept> & { subject: string; title: string }) => Promise<Concept>;
+  upsertConcept: (patch: Partial<Concept>) => Promise<Concept>;
   deleteConcept: (id: string) => Promise<void>;
 
   // Insights
@@ -28,7 +28,7 @@ interface LearnState {
   // Problems
   getProblems: () => Problem[];
   getProblem: (id: string) => Problem | undefined;
-  upsertProblem: (patch: Partial<Problem> & { title: string }) => Promise<Problem>;
+  upsertProblem: (patch: Partial<Problem>) => Promise<Problem>;
   deleteProblem: (id: string) => Promise<void>;
 
   // Sessions

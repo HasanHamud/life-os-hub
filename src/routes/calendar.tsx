@@ -72,8 +72,8 @@ function CalendarPage() {
   };
 
   const unschedule = async (t: Task) => {
-    const { deadline, ...rest } = t;
-    void deadline;
+    const { deadline: _deadline, ...rest } = t;
+    void _deadline;
     await upsertTask({ ...rest, deadline: undefined });
     toast.success(`Removed "${t.title}" from calendar`);
   };
