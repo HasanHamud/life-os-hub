@@ -16,8 +16,6 @@ const NAV = [
   { to: "/focus", label: "Focus" },
   { to: "/journal", label: "Journal" },
   { to: "/analytics", label: "Analytics" },
-  { to: "/tags", label: "Tags" },
-  { to: "/weekly-plan", label: "Weekly" },
   { to: "/learn", label: "Learn" },
   { to: "/learn/insights", label: "Insights" },
   { to: "/learn/concepts", label: "Concepts" },

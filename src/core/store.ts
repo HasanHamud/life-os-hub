@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { addDays, addMonths, addWeeks, addYears, format, startOfDay, isAfter } from "date-fns";
 import {
-  getAll, putOne, delOne, uid, getOne,
+  getAll, putOne, delOne, uid, getOne, clearStore,
 } from "./db";
 import type {
   Task, TimeBlock, Project, Goal, Session, Tag, LogEntry, Settings, TaskStatus, Recurrence, Note,
@@ -46,6 +46,7 @@ interface State {
   // time blocks
   upsertBlock: (b: Partial<TimeBlock> & { startTime?: number; endTime?: number; title?: string }) => Promise<TimeBlock>;
   deleteBlock: (id: string) => Promise<void>;
+  clearTimeBlocks: () => Promise<void>;
 
   // projects
   upsertProject: (p: Partial<Project> & { name?: string }) => Promise<Project>;
@@ -94,6 +95,7 @@ interface State {
   deleteSavingsGoal: (id: string) => Promise<void>;
 
   recomputeBalances: () => void;
+  resetFinance: () => Promise<void>;
   materializeFinanceRecurring: () => Promise<void>;
 
   // weekly plan
@@ -173,13 +175,6 @@ export const useStore = create<State>((set, get) => ({
       // backfill new fields for existing installs
       settings = { ...DEFAULT_SETTINGS, ...settings };
       await putOne("settings", settings);
-    }
-
-    if (tasks.length === 0 && projects.length === 0 && tags.length === 0) {
-      await seed();
-    }
-    if (categories.length === 0 && accounts.length === 0) {
-      await seedFinance();
     }
 
     const [t2, b2, p2, g2, ses2, tg2, lg2,
@@ -284,11 +279,19 @@ export const useStore = create<State>((set, get) => ({
     set((s) => ({
       timeBlocks: existing ? s.timeBlocks.map((x) => (x.id === block.id ? block : x)) : [...s.timeBlocks, block],
     }));
+    if (block.recurrence && block.recurrence.freq !== "none" && !block.recurrenceParentId) {
+      await get().materializeRecurringBlocks();
+    }
     return block;
   },
   deleteBlock: async (id) => {
     await delOne("timeBlocks", id);
     set((s) => ({ timeBlocks: s.timeBlocks.filter((x) => x.id !== id) }));
+  },
+
+  clearTimeBlocks: async () => {
+    await clearStore("timeBlocks");
+    set({ timeBlocks: [] });
   },
 
   upsertProject: async (patch) => {
@@ -631,6 +634,17 @@ export const useStore = create<State>((set, get) => ({
     set((s) => ({ accounts: recomputeAccountBalances(s.accounts, s.transactions) }));
   },
 
+  resetFinance: async () => {
+    await clearStore("transactions");
+    const resetAccounts = get().accounts.map((a) => ({
+      ...a, balance: a.initialBalance,
+    }));
+    for (const a of resetAccounts) {
+      await putOne("accounts", a);
+    }
+    set({ transactions: [], accounts: resetAccounts });
+  },
+
   materializeFinanceRecurring: async () => {
     const txs = get().transactions;
     const templates = txs.filter((t) => t.recurrence && t.recurrence.freq !== "none" && !t.recurrenceParentId);
@@ -798,159 +812,5 @@ function nextOccurrence(from: number, r: FinanceRecurrence): number {
   }
 }
 
-async function seed() {
-  const projId = uid();
-  const proj2 = uid();
-  const goalId = uid();
-  const tag1 = uid(), tag2 = uid(), tag3 = uid();
 
-  await putOne("projects", { id: projId, name: "Life OS Launch", description: "Ship v1 of personal OS", color: "#d4a574", createdAt: Date.now() });
-  await putOne("projects", { id: proj2, name: "Health & Fitness", description: "Habits, training, sleep", color: "#90b890", createdAt: Date.now() });
-
-  await putOne("goals", {
-    id: goalId, title: "Ship Life OS in 30 days", durationDays: 30,
-    startDate: Date.now(), endDate: Date.now() + 30 * 86400000, linkedTaskIds: [], createdAt: Date.now(),
-  });
-
-  await putOne("tags", { id: tag1, name: "deep-work", color: "#d4a574" });
-  await putOne("tags", { id: tag2, name: "admin", color: "#90b8c8" });
-  await putOne("tags", { id: tag3, name: "health", color: "#a8c888" });
-
-  const now = Date.now();
-  const today = startOfDay(new Date()).getTime();
-  const samples: Task[] = [
-    { id: uid(), title: "Design dashboard layout", status: "in_progress", priority: "high", effort: 90, deadline: today + 18 * 3600000, projectId: projId, goalId, tagIds: [tag1], dependsOnIds: [], createdAt: now, updatedAt: now },
-    { id: uid(), title: "Wire IndexedDB models", status: "done", priority: "urgent", effort: 60, projectId: projId, goalId, tagIds: [tag1], dependsOnIds: [], completedAt: now, createdAt: now - 86400000, updatedAt: now },
-    { id: uid(), title: "Build Kanban board", status: "todo", priority: "high", effort: 120, deadline: today + 86400000, projectId: projId, goalId, tagIds: [tag1], dependsOnIds: [], createdAt: now, updatedAt: now },
-    { id: uid(), title: "Morning run 5km", status: "todo", priority: "med", effort: 30, projectId: proj2, tagIds: [tag3], dependsOnIds: [], createdAt: now, updatedAt: now,
-      recurrence: { freq: "weekly", weekdays: [1, 3, 5] } },
-    { id: uid(), title: "Inbox zero", status: "backlog", priority: "low", effort: 20, tagIds: [tag2], dependsOnIds: [], createdAt: now, updatedAt: now },
-    { id: uid(), title: "Plan week ahead", status: "blocked", priority: "med", tagIds: [tag2], dependsOnIds: [], createdAt: now, updatedAt: now },
-  ];
-  for (const t of samples) await putOne("tasks", t);
-
-  const t1 = today + 9 * 3600000;
-  await putOne("timeBlocks", { id: uid(), title: "Deep work: Dashboard", startTime: t1, endTime: t1 + 5400000, type: "work", isCompleted: false, taskId: samples[0].id, createdAt: now });
-  await putOne("timeBlocks", { id: uid(), title: "Email & admin", startTime: t1 + 6 * 3600000, endTime: t1 + 7 * 3600000, type: "work", isCompleted: false, createdAt: now });
-}
-
-async function seedFinance() {
-  const now = Date.now();
-
-  // Default accounts
-  const cash = uid(), bank = uid(), savings = uid();
-  await putOne("accounts", { id: cash, name: "Cash", type: "cash", balance: 0, initialBalance: 200, currency: "USD", color: "#d4a574", createdAt: now });
-  await putOne("accounts", { id: bank, name: "Bank", type: "bank", balance: 0, initialBalance: 3500, currency: "USD", color: "#90b8c8", createdAt: now });
-  await putOne("accounts", { id: savings, name: "Savings", type: "savings", balance: 0, initialBalance: 5000, currency: "USD", color: "#90b890", createdAt: now });
-
-  // Default categories — expense parents + children
-  const mkCat = async (name: string, type: "income" | "expense", color: string, icon?: string, parentCategoryId?: string) => {
-    const id = uid();
-    await putOne("categories", { id, name, type, color, icon, parentCategoryId, createdAt: now });
-    return id;
-  };
-
-  // EXPENSE
-  const food = await mkCat("Food", "expense", "#e8a87c", "Utensils");
-  await mkCat("Groceries", "expense", "#e8a87c", "ShoppingBasket", food);
-  await mkCat("Restaurants", "expense", "#e8a87c", "UtensilsCrossed", food);
-  await mkCat("Coffee", "expense", "#c39b7a", "Coffee", food);
-
-  const transport = await mkCat("Transport", "expense", "#90b8c8", "Car");
-  await mkCat("Fuel", "expense", "#90b8c8", "Fuel", transport);
-  await mkCat("Taxi", "expense", "#90b8c8", "Car", transport);
-  await mkCat("Public transport", "expense", "#90b8c8", "Bus", transport);
-
-  const bills = await mkCat("Bills", "expense", "#c8a890", "Receipt");
-  await mkCat("Electricity", "expense", "#c8a890", "Zap", bills);
-  await mkCat("Internet", "expense", "#c8a890", "Wifi", bills);
-  await mkCat("Phone", "expense", "#c8a890", "Phone", bills);
-
-  const lifestyle = await mkCat("Lifestyle", "expense", "#b890c8", "Sparkles");
-  await mkCat("Gym", "expense", "#b890c8", "Dumbbell", lifestyle);
-  await mkCat("Entertainment", "expense", "#b890c8", "Film", lifestyle);
-  await mkCat("Subscriptions", "expense", "#b890c8", "Repeat", lifestyle);
-
-  const shopping = await mkCat("Shopping", "expense", "#d4a574", "ShoppingBag");
-  await mkCat("Clothes", "expense", "#d4a574", "Shirt", shopping);
-  await mkCat("Electronics", "expense", "#d4a574", "Laptop", shopping);
-
-  await mkCat("Health", "expense", "#e87c8a", "Heart");
-  await mkCat("Education", "expense", "#a8c888", "GraduationCap");
-
-  // INCOME
-  const salaryId = await mkCat("Salary", "income", "#90c890", "Briefcase");
-  await mkCat("Freelance", "income", "#90c890", "Code");
-  await mkCat("Business", "income", "#90c890", "Store");
-  await mkCat("Investments", "income", "#90c890", "TrendingUp");
-  await mkCat("Gifts", "income", "#90c890", "Gift");
-
-  // Sample transactions over the last ~25 days
-  const sample = [
-    { d: 1, t: "expense", amt: 4.5, cat: "Coffee", acc: cash, note: "Latte" },
-    { d: 1, t: "expense", amt: 32.1, cat: "Groceries", acc: bank, note: "Weekly shop" },
-    { d: 2, t: "expense", amt: 12, cat: "Public transport", acc: cash, note: "Metro card" },
-    { d: 3, t: "expense", amt: 9.99, cat: "Subscriptions", acc: bank, note: "Streaming" },
-    { d: 4, t: "expense", amt: 45, cat: "Restaurants", acc: bank, note: "Dinner" },
-    { d: 5, t: "income", amt: 3200, cat: "Salary", acc: bank, note: "Monthly salary" },
-    { d: 6, t: "expense", amt: 60, cat: "Electricity", acc: bank },
-    { d: 7, t: "expense", amt: 35, cat: "Internet", acc: bank },
-    { d: 8, t: "expense", amt: 89, cat: "Clothes", acc: bank },
-    { d: 10, t: "expense", amt: 25, cat: "Gym", acc: bank },
-    { d: 12, t: "income", amt: 450, cat: "Freelance", acc: bank, note: "Logo design" },
-    { d: 14, t: "expense", amt: 22, cat: "Fuel", acc: cash },
-    { d: 16, t: "expense", amt: 15.5, cat: "Restaurants", acc: cash },
-    { d: 18, t: "expense", amt: 6, cat: "Coffee", acc: cash },
-    { d: 20, t: "expense", amt: 110, cat: "Electronics", acc: bank, note: "USB-C hub" },
-  ];
-
-  // Need category lookup
-  const allCats = await getAll<Category>("categories");
-  const catByName = (n: string) => allCats.find((c) => c.name === n)?.id;
-
-  for (const s of sample) {
-    const date = now - s.d * 86400000;
-    await putOne("transactions", {
-      id: uid(),
-      type: s.t as any,
-      amount: s.amt,
-      categoryId: catByName(s.cat),
-      accountId: s.acc,
-      date,
-      note: (s as any).note,
-      createdAt: date,
-    });
-  }
-
-  // Recurring salary template
-  await putOne("transactions", {
-    id: uid(),
-    type: "income",
-    amount: 3200,
-    categoryId: salaryId,
-    accountId: bank,
-    date: now,
-    note: "Monthly salary (recurring)",
-    recurrence: { freq: "monthly", dayOfMonth: new Date().getDate() },
-    createdAt: now,
-  });
-
-  // A budget on Food
-  await putOne("budgets", {
-    id: uid(), categoryId: food, limitAmount: 400, period: "monthly", startDate: now, createdAt: now,
-  });
-  await putOne("budgets", {
-    id: uid(), categoryId: lifestyle, limitAmount: 150, period: "monthly", startDate: now, createdAt: now,
-  });
-
-  // Savings goal
-  await putOne("savingsGoals", {
-    id: uid(), title: "Emergency fund", targetAmount: 5000, currentAmount: 1850,
-    deadline: now + 180 * 86400000, accountId: savings, color: "#90b890", createdAt: now,
-  });
-  await putOne("savingsGoals", {
-    id: uid(), title: "New laptop", targetAmount: 2000, currentAmount: 600,
-    deadline: now + 90 * 86400000, color: "#d4a574", createdAt: now,
-  });
-}
 

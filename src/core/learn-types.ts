@@ -67,12 +67,3 @@ export interface RotationEntry {
   enabled: boolean;
 }
 
-export const DEFAULT_ROTATION: Omit<RotationEntry, "id">[] = [
-  { dayOfWeek: 0, subject: "Review",    topic: "Rest & light review", icon: "🧘", enabled: true },
-  { dayOfWeek: 1, subject: "Math",      topic: "Functions",           icon: "📐", enabled: true },
-  { dayOfWeek: 2, subject: "CP",        topic: "Arrays & Two Pointers", icon: "💻", enabled: true },
-  { dayOfWeek: 3, subject: "Math",      topic: "Functions",           icon: "📐", enabled: true },
-  { dayOfWeek: 4, subject: "CP",        topic: "Prefix Sums",         icon: "💻", enabled: true },
-  { dayOfWeek: 5, subject: "Math",      topic: "Graphs & Transformations", icon: "📐", enabled: true },
-  { dayOfWeek: 6, subject: "Physics",   topic: "Kinematics",          icon: "⚡", enabled: true },
-];

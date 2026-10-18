@@ -1,9 +1,9 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, ListChecks, Calendar, Clock, Target, FolderKanban,
-  Timer, BarChart3, Tag as TagIcon, BookOpen, Settings as SettingsIcon, Focus, Watch,
+  Timer, BarChart3, BookOpen, Settings as SettingsIcon, Focus, Watch,
   Wallet, ArrowLeftRight, Layers, PiggyBank, LineChart, StickyNote,
-  GraduationCap, Lightbulb, Brain, Code, TrendingUp, CalendarRange,
+  GraduationCap, Lightbulb, Brain, Code, TrendingUp,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -29,7 +29,6 @@ const NAV: NavItemConfig[] = [
   { to: "/focus", label: "Focus", icon: Focus },
   { to: "/journal", label: "Journal", icon: BookOpen },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/tags", label: "Tags", icon: TagIcon },
 ];
 
 const LEARN_NAV: NavItemConfig[] = [
@@ -94,12 +93,10 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-2 pb-4 scrollbar-thin">
+        <SectionHeading>Task Management</SectionHeading>
         {NAV.map((item) => (
           <NavLink key={item.to} {...item} currentPath={currentPath} />
         ))}
-
-        <SectionHeading>Schedule Planning</SectionHeading>
-        <NavLink to="/weekly-plan" label="Weekly Plan" icon={CalendarRange} currentPath={currentPath} />
 
         <SectionHeading>Learning</SectionHeading>
         {LEARN_NAV.map((item) => (
@@ -115,18 +112,6 @@ export function Sidebar() {
         <NavLink to="/settings" label="Settings" icon={SettingsIcon} currentPath={currentPath} />
       </nav>
 
-      <div className="px-4 py-3 border-t text-[11px] text-muted-foreground">
-        <button
-          onClick={async () => {
-            await import("@/core/supabase").then((m) => m.supabase.auth.signOut());
-            window.location.href = "/auth";
-          }}
-          className="flex items-center gap-2 hover:text-foreground transition-colors w-full text-left"
-        >
-          <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
-          Sign out
-        </button>
-      </div>
     </aside>
   );
 }

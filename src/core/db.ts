@@ -1,155 +1,56 @@
-import { supabase } from "./supabase";
-
-let currentUserId: string | null = null;
-
-export function setCurrentUserId(id: string | null) {
-  currentUserId = id;
-}
-
-export function getCurrentUserId(): string | null {
-  return currentUserId;
-}
-
-const TABLE_MAP: Record<string, string> = {
-  tasks: "tasks",
-  timeBlocks: "time_blocks",
-  projects: "projects",
-  goals: "goals",
-  sessions: "sessions",
-  tags: "tags",
-  logs: "logs",
-  settings: "settings",
-  accounts: "accounts",
-  transactions: "transactions",
-  categories: "categories",
-  budgets: "budgets",
-  savingsGoals: "savings_goals",
-  notes: "notes",
-  concepts: "concepts",
-  insights: "insights",
-  problems: "problems",
-  learningSessions: "learning_sessions",
-  rotationEntries: "rotation_entries",
-  weeklyPlans: "weekly_plans",
-  weekTemplates: "week_templates",
-};
-
-type Stores = keyof typeof TABLE_MAP;
-
-function tableName(store: Stores): string {
-  return TABLE_MAP[store];
-}
-
-function camelToSnakeKey(key: string): string {
-  return key.replace(/[A-Z]/g, (l) => `_${l.toLowerCase()}`);
-}
-
-function toSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-  for (const key of Object.keys(obj)) {
-    result[camelToSnakeKey(key)] = obj[key];
+function getApi() {
+  if (typeof window !== "undefined" && (window as any).api) {
+    return (window as any).api.db;
   }
-  return result;
+  return null;
 }
 
-function snakeToCamelKey(key: string): string {
-  return key.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
+export async function getAll<T>(store: string): Promise<T[]> {
+  const api = getApi();
+  if (!api) return [];
+  return (await api.getAll(store)) as T[];
 }
 
-function toCamelCase(obj: Record<string, unknown>): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-  for (const key of Object.keys(obj)) {
-    result[snakeToCamelKey(key)] = obj[key];
-  }
-  return result;
+export async function getOne<T>(store: string, id: string): Promise<T | undefined> {
+  const api = getApi();
+  if (!api) return undefined;
+  return (await api.getOne(store, id)) as T | undefined;
 }
 
-export async function getAll<T>(store: Stores): Promise<T[]> {
-  const userId = getCurrentUserId();
-  if (!userId) return [];
-  const table = tableName(store);
-  const { data } = await supabase
-    .from(table)
-    .select("*")
-    .eq("user_id", userId);
-  return ((data ?? []) as any[]).map((row) => toCamelCase(row)) as T[];
+export async function putOne<T extends { id: string }>(store: string, value: T): Promise<T> {
+  const api = getApi();
+  if (!api) throw new Error("Database not available");
+  return (await api.putOne(store, value)) as T;
 }
 
-export async function getOne<T>(store: Stores, id: string): Promise<T | undefined> {
-  const userId = getCurrentUserId();
-  if (!userId) return undefined;
-  const table = tableName(store);
-  const { data } = await supabase
-    .from(table)
-    .select("*")
-    .eq("id", id)
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (!data) return undefined;
-  return toCamelCase(data as any) as T;
+export async function delOne(store: string, id: string): Promise<void> {
+  const api = getApi();
+  if (!api) return;
+  await api.delOne(store, id);
 }
-
-export async function putOne<T extends { id: string }>(store: Stores, value: T): Promise<T> {
-  const userId = getCurrentUserId();
-  if (!userId) throw new Error("Not authenticated");
-  const table = tableName(store);
-  const snake = toSnakeCase(value as any);
-  const payload = { ...snake, user_id: userId };
-  const { error } = await supabase.from(table).upsert(payload);
-  if (error) {
-    console.error(`putOne error [${table}]:`, error.message, error.details, error.hint);
-    throw error;
-  }
-  return value;
-}
-
-export async function delOne(store: Stores, id: string): Promise<void> {
-  const userId = getCurrentUserId();
-  if (!userId) throw new Error("Not authenticated");
-  const table = tableName(store);
-  const { error } = await supabase
-    .from(table)
-    .delete()
-    .eq("id", id)
-    .eq("user_id", userId);
-  if (error) throw error;
-}
-
-const ALL_STORES: Stores[] = [
-  "tasks", "timeBlocks", "projects", "goals", "sessions", "tags", "logs", "settings",
-  "accounts", "transactions", "categories", "budgets", "savingsGoals", "notes",
-  "concepts", "insights", "problems", "learningSessions", "rotationEntries",
-  "weeklyPlans", "weekTemplates",
-];
 
 export async function clearAll(): Promise<void> {
-  const userId = getCurrentUserId();
-  if (!userId) return;
-  for (const store of ALL_STORES) {
-    const table = tableName(store);
-    await supabase.from(table).delete().eq("user_id", userId);
-  }
+  const api = getApi();
+  if (!api) return;
+  await api.clearAll();
+}
+
+export async function clearStore(store: string): Promise<void> {
+  const api = getApi();
+  if (!api) return;
+  await api.clearStore(store);
 }
 
 export async function exportAll() {
-  const entries = await Promise.all(ALL_STORES.map(async (s) => [s, await getAll(s)] as const));
-  const data: Record<string, any> = { version: 2, exportedAt: Date.now() };
-  for (const [s, v] of entries) data[s] = v;
-  return data;
+  const api = getApi();
+  if (!api) return {};
+  return await api.exportAll();
 }
 
 export async function importAll(data: any) {
-  const userId = getCurrentUserId();
-  if (!userId) throw new Error("Not authenticated");
-  for (const store of ALL_STORES) {
-    const items = data[store];
-    if (Array.isArray(items) && items.length > 0) {
-      const table = tableName(store);
-      const rows = items.map((item: any) => ({ ...toSnakeCase(item), user_id: userId }));
-      const { error } = await supabase.from(table).upsert(rows);
-      if (error) throw error;
-    }
-  }
+  const api = getApi();
+  if (!api) throw new Error("Database not available");
+  await api.importAll(data);
 }
 
 export const uid = () =>

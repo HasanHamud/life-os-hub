@@ -2,7 +2,6 @@ import { create } from "zustand";
 import { format } from "date-fns";
 import { getAll, putOne, delOne, uid } from "./db";
 import type { Concept, LearningInsight, Problem, LearningSession, RotationEntry } from "./learn-types";
-import { DEFAULT_ROTATION } from "./learn-types";
 
 interface LearnState {
   concepts: Concept[];
@@ -41,8 +40,6 @@ interface LearnState {
   getDayEntry: (dayOfWeek: number) => RotationEntry | undefined;
   upsertRotationEntry: (entry: RotationEntry) => Promise<void>;
   deleteRotationEntry: (id: string) => Promise<void>;
-  seedRotation: () => Promise<void>;
-
   // Helpers
   distinctSubjects: () => string[];
   recentInsights: (days: number) => LearningInsight[];
@@ -64,9 +61,6 @@ export const useLearnStore = create<LearnState>((set, get) => ({
       getAll<RotationEntry>("rotationEntries"),
     ]);
     set({ concepts, insights, problems, sessions, rotation });
-    if (rotation.length === 0) {
-      await get().seedRotation();
-    }
   },
 
   // ─── Concepts ───
@@ -235,17 +229,6 @@ export const useLearnStore = create<LearnState>((set, get) => ({
   deleteRotationEntry: async (id) => {
     await delOne("rotationEntries", id);
     set((s) => ({ rotation: s.rotation.filter((r) => r.id !== id) }));
-  },
-
-  seedRotation: async () => {
-    const entries: RotationEntry[] = DEFAULT_ROTATION.map((d) => ({
-      id: uid(),
-      ...d,
-    }));
-    for (const entry of entries) {
-      await putOne("rotationEntries", entry);
-    }
-    set({ rotation: entries });
   },
 
   // ─── Helpers ───

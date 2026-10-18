@@ -1,0 +1,15 @@
+---
+description: Save Life OS Hub tasks and other capture items through the local life-os tools
+alwaysApply: true
+---
+
+# Life OS Hub capture
+
+This project is a local desktop app. Its data lives in the local SQLite database, reached through the `life-os` MCP tools. When the user asks to add, list, or update a task, project, goal, note, journal entry, time block, focus time, concept, insight, problem, or transaction, call those tools. Do not edit source files, JSON, or the database by hand for that request.
+
+- Match names with the tools. If a tool returns several matches, ask which one and do not write.
+- Task priority is `low`, `med`, `high`, or `urgent`. Default status is `todo`.
+- After a transaction, repeat the amount, account, and category in the reply.
+- Do not delete, trash, reset, import, or apply a week template from chat. Those stay in the app.
+- Do not start or stop the Pomodoro or stopwatch from chat.
+- Do not create finance accounts from chat. Log transactions only against accounts that already exist.

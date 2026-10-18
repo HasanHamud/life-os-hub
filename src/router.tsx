@@ -27,7 +27,7 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
 export const router = createRouter({
   routeTree,
   context: {},
-  scrollRestoration: true,
+  scrollRestoration: false,
   defaultPreloadStaleTime: 0,
   defaultErrorComponent: DefaultErrorComponent,
 });

@@ -13,6 +13,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import type { BlockType, TimeBlock, Recurrence, RecurrenceFreq, Task } from "@/core/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/time")({
   head: () => ({
@@ -30,7 +41,7 @@ const PX_PER_HOUR = 64;
 const PX_PER_MIN = PX_PER_HOUR / 60;
 
 function TimePage() {
-  const { timeBlocks, tasks, settings, upsertBlock, deleteBlock } = useStore();
+  const { timeBlocks, tasks, settings, upsertBlock, deleteBlock, clearTimeBlocks } = useStore();
   const [view, setView] = useState<"day" | "week">("day");
   const [anchor, setAnchor] = useState(startOfDay(new Date()));
   const [editing, setEditing] = useState<TimeBlock | null>(null);
@@ -69,6 +80,25 @@ function TimePage() {
               const s = addMinutes(new Date(), 5).getTime();
               setCreating({ start: s, end: s + 3600000 });
             }}><Plus className="h-4 w-4 mr-1" /> Add</Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                  <Trash2 className="h-4 w-4 mr-1" /> Clear All
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Clear all time blocks?</AlertDialogTitle>
+                  <AlertDialogDescription>This will permanently delete every time block. This cannot be undone.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={async () => { await clearTimeBlocks(); toast.success("All time blocks cleared"); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Clear All
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         }
       />
@@ -245,8 +275,10 @@ function DayColumn({
         <div key={h} className="border-b border-border/40 absolute left-0 right-0" style={{ top: i * PX_PER_HOUR, height: PX_PER_HOUR }} />
       ))}
       {dayBlocks.map((b) => {
+        const endY = timeToY(b.endTime);
         const top = timeToY(b.startTime);
-        const height = Math.max(20, timeToY(b.endTime) - top);
+        const height = Math.min(Math.max(20, endY - top), HOURS.length * PX_PER_HOUR - top);
+        console.log('[block]', b.title, { startTime: new Date(b.startTime).toISOString(), endTime: new Date(b.endTime).toISOString(), top, endY, height, dayStart: new Date(dayStart).toISOString() });
         const linked = b.taskId ? tasks.find((t) => t.id === b.taskId) : undefined;
         const colors: Record<BlockType, string> = {
           work: "bg-primary/15 border-l-primary text-foreground",
@@ -313,8 +345,9 @@ function BlockDialog({
   const [title, setTitle] = useState(block?.title ?? "Time Block");
   const [type, setType] = useState<BlockType>(block?.type ?? "work");
   const [taskId, setTaskId] = useState<string>(block?.taskId ?? "none");
-  const [s, setS] = useState(format(start, "yyyy-MM-dd'T'HH:mm"));
-  const [e, setE] = useState(format(end, "yyyy-MM-dd'T'HH:mm"));
+  const [date, setDate] = useState(format(start, "yyyy-MM-dd"));
+  const [startTime, setStartTime] = useState(format(start, "HH:mm"));
+  const [endTime, setEndTime] = useState(format(end, "HH:mm"));
   const [recFreq, setRecFreq] = useState<RecurrenceFreq>(block?.recurrence?.freq ?? "none");
   const [recWeekdays, setRecWeekdays] = useState<number[]>(block?.recurrence?.weekdays ?? []);
   const [recInterval, setRecInterval] = useState<number>(block?.recurrence?.intervalDays ?? 2);
@@ -324,8 +357,9 @@ function BlockDialog({
     setTitle(block?.title ?? "Time Block");
     setType(block?.type ?? "work");
     setTaskId(block?.taskId ?? "none");
-    setS(format(start, "yyyy-MM-dd'T'HH:mm"));
-    setE(format(end, "yyyy-MM-dd'T'HH:mm"));
+    setDate(format(start, "yyyy-MM-dd"));
+    setStartTime(format(start, "HH:mm"));
+    setEndTime(format(end, "HH:mm"));
     setRecFreq(block?.recurrence?.freq ?? "none");
     setRecWeekdays(block?.recurrence?.weekdays ?? []);
     setRecInterval(block?.recurrence?.intervalDays ?? 2);
@@ -340,7 +374,7 @@ function BlockDialog({
   const buildRecurrence = (): Recurrence | undefined => {
     if (recFreq === "none") return undefined;
     const r: Recurrence = { freq: recFreq };
-    if (recFreq === "weekly") r.weekdays = recWeekdays.length > 0 ? recWeekdays : [new Date(s).getDay()];
+    if (recFreq === "weekly") r.weekdays = recWeekdays.length > 0 ? recWeekdays : [new Date(date + "T" + startTime).getDay()];
     if (recFreq === "custom") r.intervalDays = Math.max(1, recInterval);
     if (recUntil) r.until = new Date(recUntil + "T23:59").getTime();
     return r;
@@ -355,9 +389,10 @@ function BlockDialog({
             <Label className="text-xs">Title</Label>
             <Input value={title} onChange={(ev) => setTitle(ev.target.value)} />
           </div>
+          <div><Label className="text-xs">Date</Label><Input type="date" value={date} onChange={(ev) => setDate(ev.target.value)} /></div>
           <div className="grid grid-cols-2 gap-2">
-            <div><Label className="text-xs">Start</Label><Input type="datetime-local" value={s} onChange={(ev) => setS(ev.target.value)} /></div>
-            <div><Label className="text-xs">End</Label><Input type="datetime-local" value={e} onChange={(ev) => setE(ev.target.value)} /></div>
+            <div><Label className="text-xs">From</Label><Input type="time" value={startTime} onChange={(ev) => setStartTime(ev.target.value)} /></div>
+            <div><Label className="text-xs">To</Label><Input type="time" value={endTime} onChange={(ev) => setEndTime(ev.target.value)} /></div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
@@ -439,8 +474,8 @@ function BlockDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={() => onSave({
             id: block?.id, title, type,
-            startTime: new Date(s).getTime(),
-            endTime: new Date(e).getTime(),
+            startTime: new Date(date + "T" + startTime).getTime(),
+            endTime: new Date(date + "T" + endTime).getTime(),
             taskId: taskId === "none" ? undefined : taskId,
             recurrence: buildRecurrence(),
           })}>{block ? "Save" : "Create"}</Button>

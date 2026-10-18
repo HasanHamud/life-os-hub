@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "life-os": {
+      "command": "node",
+      "args": ["scripts/life-os-mcp-launch.cjs"]
+    }
+  }
+}

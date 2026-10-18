@@ -5,10 +5,21 @@ import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { fmtMoney, signedAmount, topCategories, savingsRate, financialHealthScore, budgetSpent, periodRange, convertCurrency } from "@/core/finance-utils";
 import { TransactionDialog } from "@/components/finance/TransactionDialog";
-import { TrendingUp, TrendingDown, Wallet, PiggyBank, Plus, ArrowRightLeft, Sparkles } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, Plus, ArrowRightLeft, Sparkles, RotateCcw } from "lucide-react";
 import { format, isWeekend, startOfMonth, endOfMonth } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Card, EmptyState } from "@/components/common/Card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/finance/")({
   head: () => ({
@@ -210,6 +221,7 @@ function FinanceDashboard() {
           <Card title="USD → LBP rate">
   <RateEditor />
 </Card>
+<ResetFinanceButton />
         </aside>
       </div>
 
@@ -228,6 +240,38 @@ function Stat({ icon: Icon, label, value, accent }: { icon: any; label: string; 
       </div>
       <div className="text-2xl font-display font-semibold tabular-nums">{value}</div>
     </div>
+  );
+}
+
+function ResetFinanceButton() {
+  const { resetFinance } = useStore();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger asChild>
+        <div className="px-2 pb-2">
+          <Button size="sm" variant="outline" className="w-full h-8 text-xs text-destructive border-destructive/30 hover:bg-destructive/10">
+            <RotateCcw className="h-3.5 w-3.5 mr-1" />
+            Reset All Transactions + Balance
+          </Button>
+        </div>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Reset all finance data?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will permanently delete all transactions and reset every account balance to its initial amount. This cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={async () => { await resetFinance(); setOpen(false); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            Reset
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
