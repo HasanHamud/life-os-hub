@@ -183,9 +183,12 @@ export const ar: MessageCatalog = {
   tags: { title: "الوسوم", new: "وسم جديد", create: "إنشاء" },
   journal: {
     title: "اليوميات", prev: "اليوم السابق", next: "اليوم التالي",
+    description: "سجل عمل يومي. أضف عدة مدخلات لليوم، كل واحدة مرتبطة بالمهام التي عملت عليها.",
+    adminDescription: "سجل عمل اليوم لكل عضو.",
     placeholder: "على ماذا عملت؟ ما الذي تحرّك، وما التالي؟",
     edit: "تعديل المدخلة", delete: "حذف المدخلة", related: "مهام مرتبطة", noDays: "لا أيام أخرى.",
     noTasks: "لا مهام مطابقة.", search: "بحث في المهام", done: "تم",
+    pickDate: "اختر تاريخًا", allDates: "كل التواريخ", noEntry: "لا مدخلة في هذا اليوم",
   },
   focusPage: {
     exit: "الخروج من التركيز", mode: "وضع التركيز", empty: "الصندوق فارغ",

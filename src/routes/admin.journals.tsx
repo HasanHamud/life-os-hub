@@ -1,9 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { format } from "date-fns";
+import { addDays, format } from "date-fns";
+import { useTranslation } from "react-i18next";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { DayPickerButton } from "@/components/journal/DayPicker";
 import { authState } from "@/core/session";
 import { cn } from "@/lib/utils";
 
@@ -33,17 +36,28 @@ function parseDay(day: string) {
   return new Date(year, month - 1, date);
 }
 
+function shiftDay(day: string, amount: number) {
+  return format(addDays(parseDay(day), amount), "yyyy-MM-dd");
+}
+
 function AdminJournalsPage() {
+  const { t } = useTranslation();
   const me = authState().user;
+  const today = format(new Date(), "yyyy-MM-dd");
   const [people, setPeople] = useState<Person[]>([]);
   const [selected, setSelected] = useState("all");
+  const [day, setDay] = useState<string | null>(today);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (me?.role !== "admin") return;
     let cancel = false;
-    const url = selected === "all" ? "/api/admin/journals" : `/api/admin/journals?userId=${selected}`;
+    const params = new URLSearchParams();
+    if (selected !== "all") params.set("userId", selected);
+    if (day) params.set("date", day);
+    const query = params.toString();
+    const url = query ? `/api/admin/journals?${query}` : "/api/admin/journals";
     fetch(url, { credentials: "include" })
       .then(async (res) => {
         const data = await res.json().catch(() => ({}));
@@ -63,7 +77,7 @@ function AdminJournalsPage() {
         if (!cancel) setError(err.message);
       });
     return () => { cancel = true; };
-  }, [me?.role, selected]);
+  }, [me?.role, selected, day]);
 
   async function saveNote(entry: JournalEntry, note: string) {
     setError("");
@@ -96,7 +110,20 @@ function AdminJournalsPage() {
     <PageContainer>
       <PageHeader
         title="Journals"
-        description="Journal entries written by members. Focus and activity stay on the Admin page."
+        description={t("journal.adminDescription")}
+        actions={
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button size="sm" variant="ghost" disabled={!day} onClick={() => day && setDay(shiftDay(day, -1))} aria-label={t("journal.prev")}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <DayPickerButton day={day} onChange={setDay} />
+            <Button size="sm" variant="outline" onClick={() => setDay(today)}>{t("common.today")}</Button>
+            <Button size="sm" variant="ghost" disabled={!day} onClick={() => day && setDay(shiftDay(day, 1))} aria-label={t("journal.next")}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button size="sm" variant={day ? "ghost" : "outline"} onClick={() => setDay(null)}>{t("journal.allDates")}</Button>
+          </div>
+        }
       />
       {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
       <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
@@ -107,8 +134,16 @@ function AdminJournalsPage() {
           ))}
         </aside>
         <div className="space-y-6">
-          {selected !== "all" && <h2 className="text-sm font-semibold">{person?.name}</h2>}
-          {entries.length === 0 ? (
+          {selected !== "all" && !day && <h2 className="text-sm font-semibold">{person?.name}</h2>}
+          {day ? (
+            <DayLog
+              day={day}
+              people={selected === "all" ? people : people.filter((item) => item.id === selected)}
+              entries={entries}
+              onSave={saveNote}
+              empty={t("journal.noEntry")}
+            />
+          ) : entries.length === 0 ? (
             <p className="text-sm text-muted-foreground">No journal entries yet.</p>
           ) : groupByDate(entries).map((group) => (
             <section key={group.date}>
@@ -132,6 +167,53 @@ function AdminJournalsPage() {
         </div>
       </div>
     </PageContainer>
+  );
+}
+
+function DayLog({
+  day,
+  people,
+  entries,
+  onSave,
+  empty,
+}: {
+  day: string;
+  people: Person[];
+  entries: JournalEntry[];
+  onSave: (entry: JournalEntry, note: string) => Promise<void>;
+  empty: string;
+}) {
+  return (
+    <section>
+      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {format(parseDay(day), "EEEE, MMMM d, yyyy")}
+      </h3>
+      {people.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No journal entries yet.</p>
+      ) : (
+        <div className="space-y-5">
+          {people.map((person) => {
+            const rows = entries
+              .filter((entry) => entry.userId === person.id)
+              .sort((a, b) => a.createdAt - b.createdAt);
+            return (
+              <div key={person.id}>
+                <h4 className="mb-2 text-sm font-medium">{person.name}</h4>
+                {rows.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{empty}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {rows.map((entry) => (
+                      <EntryCard key={entry.id} entry={entry} onSave={onSave} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }
 

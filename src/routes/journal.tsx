@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import i18n from "@/core/i18n";
 import { authState } from "@/core/session";
+import { DayPickerButton } from "@/components/journal/DayPicker";
 
 export const Route = createFileRoute("/journal")({
   beforeLoad: () => {
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/journal")({
   },
   head: () => ({ meta: [
     { title: i18n.t("meta.journal") },
-    { name: "description", content: "Day work log with mood, energy, and several related tasks." },
+    { name: "description", content: i18n.t("journal.description") },
   ]}),
   component: JournalPage,
 });
@@ -52,6 +53,11 @@ function JournalPage() {
   const [mood, setMood] = useState("");
   const [energy, setEnergy] = useState("");
   const [taskIds, setTaskIds] = useState<string[]>([]);
+
+  const loggedDays = useMemo(
+    () => [...new Set(logs.map((entry) => entry.date))].map(parseDay),
+    [logs],
+  );
 
   const dayLogs = useMemo(
     () => logs.filter((entry) => entry.date === day).sort((a, b) => a.createdAt - b.createdAt),
@@ -134,12 +140,13 @@ function JournalPage() {
     <PageContainer>
       <PageHeader
         title={t("journal.title")}
-        description="Day work log. Add several entries for the day, each tied to the tasks you worked."
+        description={t("journal.description")}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Button size="sm" variant="ghost" onClick={() => setDay(shiftDay(day, -1))} aria-label={t("journal.prev")}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
+            <DayPickerButton day={day} onChange={setDay} marked={loggedDays} />
             <Button size="sm" variant="outline" onClick={() => setDay(today)}>{t("common.today")}</Button>
             <Button size="sm" variant="ghost" onClick={() => setDay(shiftDay(day, 1))} aria-label={t("journal.next")}>
               <ChevronRight className="h-4 w-4" />
@@ -179,7 +186,7 @@ function JournalPage() {
           <div className="space-y-3">
             {dayLogs.length === 0 && (
               <div className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
-                No entries for this day yet.
+                {t("journal.noEntry")}
               </div>
             )}
             {dayLogs.map((entry) => (

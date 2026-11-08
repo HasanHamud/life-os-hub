@@ -181,9 +181,12 @@ export const en = {
   tags: { title: "Tags", new: "New Tag", create: "Create" },
   journal: {
     title: "Journal", prev: "Previous day", next: "Next day",
+    description: "Daily work log. Add several entries for the day, each tied to the tasks you worked.",
+    adminDescription: "One day's work log for each member.",
     placeholder: "What did you work on? What moved, and what's next?",
     edit: "Edit entry", delete: "Delete entry", related: "Related tasks", noDays: "No other days.",
     noTasks: "No matching tasks.", search: "Search tasks", done: "done",
+    pickDate: "Choose a date", allDates: "All dates", noEntry: "No entry this day",
   },
   focusPage: {
     exit: "Exit focus", mode: "Focus Mode", empty: "Inbox empty",

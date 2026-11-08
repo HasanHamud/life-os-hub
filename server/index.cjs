@@ -190,9 +190,13 @@ async function handleAdmin(req, res, parts, actor) {
     return;
   }
   if (req.method === "GET" && parts.length === 3 && parts[2] === "journals") {
-    const userId = new URL(req.url, "http://127.0.0.1").searchParams.get("userId");
+    const query = new URL(req.url, "http://127.0.0.1").searchParams;
+    const userId = query.get("userId");
+    const date = query.get("date");
     const people = database.listMemberJournalCounts();
-    const entries = database.listMemberJournals(userId);
+    const entries = date
+      ? database.listJournalsByDate(date).filter((row) => !userId || row.userId === userId)
+      : database.listMemberJournals(userId);
     // #region agent log
     fetch("http://127.0.0.1:7358/ingest/16520233-05b9-4a47-9ef8-1e4a695755c4",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"ae3054"},body:JSON.stringify({sessionId:"ae3054",runId:"post-fix",hypothesisId:"C",location:"server/index.cjs:journals",message:"member journals listed",data:{userId:userId||null,people:people.length,entries:entries.length,adminEntries:0},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
