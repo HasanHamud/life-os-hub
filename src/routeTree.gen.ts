@@ -26,6 +26,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LearnIndexRouteImport } from './routes/learn.index'
 import { Route as FinanceIndexRouteImport } from './routes/finance.index'
 import { Route as TasksTaskIdRouteImport } from './routes/tasks_.$taskId'
+import { Route as ProjectsProjectIdRouteImport } from './routes/projects_.$projectId'
 import { Route as LearnProgressRouteImport } from './routes/learn.progress'
 import { Route as LearnProblemsRouteImport } from './routes/learn.problems'
 import { Route as LearnInsightsRouteImport } from './routes/learn.insights'
@@ -124,6 +125,11 @@ const FinanceIndexRoute = FinanceIndexRouteImport.update({
 const TasksTaskIdRoute = TasksTaskIdRouteImport.update({
   id: '/tasks_/$taskId',
   path: '/tasks/$taskId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
+  id: '/projects_/$projectId',
+  path: '/projects/$projectId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LearnProgressRoute = LearnProgressRouteImport.update({
@@ -231,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/learn/insights': typeof LearnInsightsRoute
   '/learn/problems': typeof LearnProblemsRoute
   '/learn/progress': typeof LearnProgressRoute
+  '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
   '/finance/': typeof FinanceIndexRoute
   '/learn/': typeof LearnIndexRoute
@@ -262,6 +269,7 @@ export interface FileRoutesByTo {
   '/learn/insights': typeof LearnInsightsRoute
   '/learn/problems': typeof LearnProblemsRoute
   '/learn/progress': typeof LearnProgressRoute
+  '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
   '/finance': typeof FinanceIndexRoute
   '/learn': typeof LearnIndexRoute
@@ -297,6 +305,7 @@ export interface FileRoutesById {
   '/learn/insights': typeof LearnInsightsRoute
   '/learn/problems': typeof LearnProblemsRoute
   '/learn/progress': typeof LearnProgressRoute
+  '/projects_/$projectId': typeof ProjectsProjectIdRoute
   '/tasks_/$taskId': typeof TasksTaskIdRoute
   '/finance/': typeof FinanceIndexRoute
   '/learn/': typeof LearnIndexRoute
@@ -332,6 +341,7 @@ export interface FileRouteTypes {
     | '/learn/insights'
     | '/learn/problems'
     | '/learn/progress'
+    | '/projects/$projectId'
     | '/tasks/$taskId'
     | '/finance/'
     | '/learn/'
@@ -363,6 +373,7 @@ export interface FileRouteTypes {
     | '/learn/insights'
     | '/learn/problems'
     | '/learn/progress'
+    | '/projects/$projectId'
     | '/tasks/$taskId'
     | '/finance'
     | '/learn'
@@ -397,6 +408,7 @@ export interface FileRouteTypes {
     | '/learn/insights'
     | '/learn/problems'
     | '/learn/progress'
+    | '/projects_/$projectId'
     | '/tasks_/$taskId'
     | '/finance/'
     | '/learn/'
@@ -417,6 +429,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   TagsRoute: typeof TagsRoute
   TasksRoute: typeof TasksRoute
+  ProjectsProjectIdRoute: typeof ProjectsProjectIdRoute
   TasksTaskIdRoute: typeof TasksTaskIdRoute
 }
 
@@ -539,6 +552,13 @@ declare module '@tanstack/react-router' {
       path: '/tasks/$taskId'
       fullPath: '/tasks/$taskId'
       preLoaderRoute: typeof TasksTaskIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects_/$projectId': {
+      id: '/projects_/$projectId'
+      path: '/projects/$projectId'
+      fullPath: '/projects/$projectId'
+      preLoaderRoute: typeof ProjectsProjectIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/learn/progress': {
@@ -732,6 +752,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   TagsRoute: TagsRoute,
   TasksRoute: TasksRoute,
+  ProjectsProjectIdRoute: ProjectsProjectIdRoute,
   TasksTaskIdRoute: TasksTaskIdRoute,
 }
 export const routeTree = rootRouteImport

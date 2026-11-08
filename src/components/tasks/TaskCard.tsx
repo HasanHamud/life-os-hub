@@ -1,10 +1,23 @@
+import { useSyncExternalStore } from "react";
 import { useStore } from "@/core/store";
 import { personName, usePeople } from "@/core/people";
+import { authState, subscribeAuth } from "@/core/session";
 import type { Task } from "@/core/types";
 import { StatusBadge, PriorityBadge } from "@/components/common/Badges";
 import { fmt, isOverdue } from "@/core/utils";
 import { Calendar, Link2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+
+function AddedBy({ task }: { task: Task }) {
+  const { t } = useTranslation();
+  const people = usePeople();
+  const me = useSyncExternalStore(subscribeAuth, () => authState().user);
+  if (!task.createdBy || task.createdBy === me?.id) return null;
+  const name = personName(people, task.createdBy);
+  if (!name) return null;
+  return <span className="truncate text-[10px] text-muted-foreground">{t("tasks.addedBy", { name })}</span>;
+}
 
 export function TaskCard({
   task, onClick, draggable = false, onDragStart,
@@ -79,6 +92,7 @@ export function TaskCard({
             </span>
           )}
           {assignee && <span className="truncate">{assignee}</span>}
+          <AddedBy task={task} />
         </div>
         {blockedByDep && (
           <span title="Blocked by dependency" className="text-warning">
@@ -108,6 +122,7 @@ export function TaskRow({ task, onClick }: { task: Task; onClick?: () => void })
         <div className={cn("text-sm truncate", done && "line-through text-muted-foreground")}>
           {task.title}
         </div>
+        <AddedBy task={task} />
       </button>
       <div className="flex items-center gap-2 opacity-80">
         {task.deadline && (

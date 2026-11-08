@@ -27,6 +27,7 @@ export interface Task {
   parentTaskId?: string;
   dependsOnIds?: string[];
   assigneeId?: string;
+  createdBy?: string;
   recurrence?: Recurrence;
   recurrenceParentId?: string; // if generated from a recurring template
   archived?: boolean;
@@ -44,6 +45,7 @@ export interface Project {
   color?: string;
   category?: string;
   managerId?: string;
+  memberIds?: string[];
   archived?: boolean;
   createdAt: number;
 }

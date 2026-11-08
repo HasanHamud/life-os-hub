@@ -85,7 +85,7 @@ function AdminJournalsPage() {
   if (me?.role !== "admin") {
     return (
       <PageContainer>
-        <PageHeader title="Journals" description="Only an admin can open this page." />
+        <PageHeader title="Journals" description="Only a manager can open this page." />
       </PageContainer>
     );
   }

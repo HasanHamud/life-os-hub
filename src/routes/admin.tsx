@@ -178,7 +178,7 @@ function AdminPage() {
   if (me?.role !== "admin") {
     return (
       <PageContainer>
-        <PageHeader title={t("admin.title")} description="Only an admin can open this page." />
+        <PageHeader title={t("admin.title")} description="Only a manager can open this page." />
       </PageContainer>
     );
   }
@@ -306,59 +306,140 @@ function AdminPage() {
         </div>
       </form>
       {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full min-w-[1100px] text-start text-sm">
-          <thead className="bg-muted/50 text-muted-foreground">
-            <tr>
-              <th className="px-3 py-2 font-medium">{t("admin.person")}</th>
-              <th className="px-3 py-2 font-medium">{t("admin.open")}</th>
-              <th className="px-3 py-2 font-medium">{t("admin.overdue")}</th>
-              <th className="px-3 py-2 font-medium">{t("admin.done7")}</th>
-              <th className="px-3 py-2 font-medium">{t("admin.focus7")}</th>
-              <th className="px-3 py-2 font-medium">{t("admin.journal")}</th>
-              <th className="px-3 py-2 font-medium">{t("admin.notes")}</th>
-              <th className="px-3 py-2 font-medium">{t("admin.learn7")}</th>
-              <th className="px-3 py-2 font-medium">{t("admin.latest")}</th>
-              <th className="px-3 py-2 font-medium">{t("admin.account")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {people.map((person) => (
-              <tr key={person.id} className="border-t align-top">
-                <td className="px-3 py-3">
-                  <div className="font-medium">{person.name}</div>
-                  <div className="text-xs text-muted-foreground">{person.email}</div>
-                  <div className="text-xs text-muted-foreground">{person.role}{person.active ? "" : " · disabled"}</div>
-                </td>
-                <td className="px-3 py-3">{person.openTasks}</td>
-                <td className="px-3 py-3">{person.overdueTasks}</td>
-                <td className="px-3 py-3">{person.tasksDone7d}</td>
-                <td className="px-3 py-3">{person.focusMinutes} min</td>
-                <td className="px-3 py-3">{person.journalEntries}</td>
-                <td className="px-3 py-3">{person.notes}</td>
-                <td className="px-3 py-3">{person.learningSessions7d}</td>
-                <td className="px-3 py-3">{person.lastChange ? formatWhen(person.lastChange, "PPp") : "No activity"}</td>
-                <td className="px-3 py-3 space-y-2">
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="button" size="sm" variant="outline" onClick={() => openWorkspace(person)}>{t("admin.openWorkspace")}</Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={person.id === me.id}
-                      onClick={() => setActive(person, !person.active)}
-                    >
-                      {person.active ? "Disable" : "Enable"}
-                    </Button>
-                  </div>
-                  <PasswordReset onSubmit={(next) => resetPassword(person, next)} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <PeopleTable
+        people={people}
+        meId={me.id}
+        onOpen={openWorkspace}
+        onSetActive={setActive}
+        onResetPassword={resetPassword}
+      />
     </PageContainer>
+  );
+}
+
+function PeopleTable({ people, meId, onOpen, onSetActive, onResetPassword }: {
+  people: Person[];
+  meId: string;
+  onOpen: (person: Person) => void;
+  onSetActive: (person: Person, active: boolean) => Promise<void>;
+  onResetPassword: (person: Person, next: string) => Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const [sorting, setSorting] = useState<SortingState>([{ id: "person", desc: false }]);
+  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+  const columns = useMemo<ColumnDef<Person>[]>(() => [
+    {
+      id: "person",
+      accessorFn: (row) => row.name,
+      header: t("admin.person"),
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium">{row.original.name}</div>
+          <div className="text-xs text-muted-foreground">{row.original.email}</div>
+          <div className="text-xs text-muted-foreground">{row.original.role === "admin" ? t("profile.roleAdmin") : t("profile.roleMember")}{row.original.active ? "" : " · disabled"}</div>
+        </div>
+      ),
+    },
+    { accessorKey: "openTasks", header: t("admin.open") },
+    { accessorKey: "overdueTasks", header: t("admin.overdue") },
+    { accessorKey: "tasksDone7d", header: t("admin.done7") },
+    {
+      accessorKey: "focusMinutes",
+      header: t("admin.focus7"),
+      cell: ({ getValue }) => `${getValue<number>()} min`,
+    },
+    { accessorKey: "journalEntries", header: t("admin.journal") },
+    { accessorKey: "notes", header: t("admin.notes") },
+    { accessorKey: "learningSessions7d", header: t("admin.learn7") },
+    {
+      id: "latest",
+      accessorFn: (row) => row.lastChange ?? 0,
+      header: t("admin.latest"),
+      cell: ({ row }) => row.original.lastChange ? formatWhen(row.original.lastChange, "PPp") : "No activity",
+    },
+    {
+      id: "account",
+      header: t("admin.account"),
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={() => onOpen(row.original)}>{t("admin.openWorkspace")}</Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={row.original.id === meId}
+              onClick={() => void onSetActive(row.original, !row.original.active)}
+            >
+              {row.original.active ? "Disable" : "Enable"}
+            </Button>
+          </div>
+          <PasswordReset onSubmit={(next) => onResetPassword(row.original, next)} />
+        </div>
+      ),
+    },
+  ], [meId, onOpen, onResetPassword, onSetActive, t]);
+  const table = useReactTable({
+    data: people,
+    columns,
+    state: { sorting, pagination },
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getRowId: (row) => row.id,
+  });
+
+  return (
+    <section className="rounded-lg border">
+      <div className="flex flex-wrap items-end justify-end gap-3 border-b px-3 py-2">
+        <div className="space-y-1">
+          <Label className="text-xs">{t("admin.rows")}</Label>
+          <Select
+            value={String(pagination.pageSize)}
+            onValueChange={(value) => setPagination({ pageIndex: 0, pageSize: Number(value) })}
+          >
+            <SelectTrigger className="h-8 w-20"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {PAGE_SIZES.map((size) => <SelectItem key={size} value={String(size)}>{size}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <Table className="min-w-[1100px]">
+        <TableHeader>
+          {table.getHeaderGroups().map((group) => (
+            <TableRow key={group.id}>
+              {group.headers.map((header) => (
+                <TableHead key={header.id} className="text-start">
+                  {header.column.getCanSort()
+                    ? <button type="button" className="font-medium" onClick={header.column.getToggleSortingHandler()}>
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        {{ asc: " ↑", desc: " ↓" }[header.column.getIsSorted() as string] ?? ""}
+                      </button>
+                    : flexRender(header.column.columnDef.header, header.getContext())}
+                </TableHead>
+              ))}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {table.getRowModel().rows.map((row) => (
+            <TableRow key={row.id} className="align-top">
+              {row.getVisibleCells().map((cell) => (
+                <TableCell key={cell.id} className="align-top">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      <div className="flex items-center justify-end gap-2 border-t px-3 py-2">
+        <Button type="button" size="sm" variant="outline" disabled={!table.getCanPreviousPage()} onClick={() => table.previousPage()}>{t("common.previous")}</Button>
+        <Button type="button" size="sm" variant="outline" disabled={!table.getCanNextPage()} onClick={() => table.nextPage()}>{t("common.next")}</Button>
+      </div>
+    </section>
   );
 }
 

@@ -68,7 +68,7 @@ interface State {
   setTaskStatus: (id: string, status: TaskStatus) => Promise<void>;
 
   // projects
-  upsertProject: (p: Partial<Omit<Project, "managerId">> & { name?: string; managerId?: string | null }) => Promise<Project>;
+  upsertProject: (p: Partial<Omit<Project, "managerId" | "memberIds">> & { name?: string; managerId?: string | null; memberIds?: string[] }) => Promise<Project>;
   deleteProject: (id: string) => Promise<void>;
 
   // goals
@@ -132,7 +132,7 @@ interface State {
   restoreNote: (id: string) => Promise<void>;
 }
 
-const DEFAULT_SETTINGS: Settings = {
+export const DEFAULT_SETTINGS: Settings = {
   id: "global",
   locale: "en",
   theme: DEFAULT_THEME,
@@ -262,6 +262,7 @@ export const useStore = create<State>((set, get) => ({
       parentTaskId: patch.parentTaskId ?? existing?.parentTaskId,
       dependsOnIds: patch.dependsOnIds ?? existing?.dependsOnIds ?? [],
       assigneeId: patch.assigneeId === null ? undefined : (patch.assigneeId ?? existing?.assigneeId),
+      createdBy: existing?.createdBy,
       recurrence: patch.recurrence ?? existing?.recurrence,
       recurrenceParentId: patch.recurrenceParentId ?? existing?.recurrenceParentId,
       archived: patch.archived ?? existing?.archived ?? false,
@@ -303,6 +304,7 @@ export const useStore = create<State>((set, get) => ({
       color: patch.color ?? existing?.color ?? "#d4a574",
       category: patch.category ?? existing?.category,
       managerId: patch.managerId === null ? undefined : (patch.managerId ?? existing?.managerId),
+      memberIds: "memberIds" in patch ? patch.memberIds ?? existing?.memberIds ?? [] : existing?.memberIds,
       archived: patch.archived ?? existing?.archived ?? false,
       createdAt: existing?.createdAt ?? Date.now(),
     };

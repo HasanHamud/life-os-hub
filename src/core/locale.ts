@@ -32,6 +32,21 @@ export function latinDigits(value: string): string {
   return value.replace(/[٠-٩]/g, (digit) => String(ARABIC_DIGITS.indexOf(digit)));
 }
 
+const LOGIN_LOCALE = "life-os-login-locale";
+
+export function rememberedLocale(): LocaleId | null {
+  try {
+    const value = localStorage.getItem(LOGIN_LOCALE);
+    return isLocaleId(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export function rememberLocale(value: LocaleId) {
+  try { localStorage.setItem(LOGIN_LOCALE, value); } catch { /* private mode */ }
+}
+
 export async function applyLocale(value: unknown): Promise<LocaleId> {
   const locale = normalizeLocale(value);
   document.documentElement.lang = locale;

@@ -1,4 +1,4 @@
-# Life OS Hub
+# Jawary
 
 A local personal operating system: tasks, time, finance, learning, and notes. One Node process serves the API and the web app. Each computer keeps its own SQLite database. A new install starts empty.
 

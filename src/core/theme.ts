@@ -10,41 +10,36 @@ export interface ThemeOption {
   swatches: readonly [string, string, string, string];
 }
 
-export const DEFAULT_THEME: ThemeId = "warm-dark";
+export const DEFAULT_THEME: ThemeId = "forest";
 
 export const THEMES: readonly ThemeOption[] = [
   {
     id: "warm-dark",
     name: "Warm Dark",
-    description: "The original warm, focused Life OS palette.",
+    description: "Dark brown, cream, and gold.",
     mode: "dark",
-    swatches: [
-      "oklch(0.16 0.012 60)",
-      "oklch(0.20 0.013 62)",
-      "oklch(0.78 0.13 70)",
-      "oklch(0.30 0.022 70)",
-    ],
+    swatches: ["#1C1814", "#241F1B", "#E4B56A", "#F3ECE3"],
   },
   {
     id: "main-light",
     name: "Main Light",
-    description: "Warm paper, indigo, and amber.",
+    description: "Warm paper and terracotta.",
     mode: "light",
-    swatches: ["#FAF7F2", "#FFFFFF", "#4F46B8", "#F59E0B"],
+    swatches: ["#F6F3EE", "#FFFCFA", "#C44732", "#1C1A17"],
   },
   {
     id: "forest",
     name: "Forest Sand",
-    description: "Sand, forest green, and terracotta.",
+    description: "Sand and forest green.",
     mode: "light",
-    swatches: ["#F4EFE6", "#FBF8F3", "#1F4D3A", "#D9734E"],
+    swatches: ["#E7E1D2", "#EFE9DC", "#1E4D3A", "#1A332B"],
   },
   {
     id: "midnight",
     name: "Midnight",
-    description: "Navy, teal, and violet.",
+    description: "Navy and gold.",
     mode: "dark",
-    swatches: ["#0F172A", "#172033", "#2DD4BF", "#8B5CF6"],
+    swatches: ["#10182C", "#162036", "#E6C15C", "#E8E6F0"],
   },
 ] as const;
 
@@ -54,6 +49,21 @@ export function isThemeId(value: unknown): value is ThemeId {
 
 export function normalizeTheme(value: unknown): ThemeId {
   return isThemeId(value) ? value : DEFAULT_THEME;
+}
+
+const LOGIN_THEME = "life-os-login-theme";
+
+export function rememberedTheme(): ThemeId | null {
+  try {
+    const value = localStorage.getItem(LOGIN_THEME);
+    return isThemeId(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export function rememberTheme(value: ThemeId) {
+  try { localStorage.setItem(LOGIN_THEME, value); } catch { /* private mode */ }
 }
 
 export function applyTheme(value: unknown): ThemeId {

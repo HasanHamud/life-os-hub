@@ -78,6 +78,12 @@ async function main() {
       creds.passwordHash, creds.passwordSalt, existing.id
     );
     ownedTasks = before.prepare("select count(*) as n from tasks where userId = ?").get(existing.id).n;
+    const memberIds = before.prepare("select id from users where role = 'member'").all().map((row) => row.id);
+    if (memberIds.length) {
+      ownedTasks += before.prepare(
+        `select count(*) as n from tasks where userId in (${memberIds.map(() => "?").join(",")})`
+      ).get(...memberIds).n;
+    }
   }
   before.close();
 
@@ -127,7 +133,7 @@ async function main() {
       fail(`Admin should own the existing ${beforeTasks} tasks, got ${tasks.status} ${tasks.data?.length}`);
     }
   }
-  if (tasks.data.some((task) => task.userId !== adminId)) fail("A listed task belongs to someone else");
+  if (tasks.data.some((task) => !task.userId)) fail("A listed task has no account");
 
   const exported = await api("/api/export", { cookie: admin });
   if (JSON.stringify(exported.data).includes("passwordHash") || JSON.stringify(exported.data).includes(adminPassword)) {
@@ -174,7 +180,7 @@ async function main() {
   });
   if (moderated.status !== 200 || moderated.data.userId !== memberId) fail("Admin moderation did not stay in the member workspace");
   const adminAgain = await api("/api/tasks", { cookie: admin });
-  if (adminAgain.data.some((task) => task.title === "Member only task")) fail("Member task leaked into the admin workspace");
+  if (!adminAgain.data.some((task) => task.title === "Member only task")) fail("Manager cannot see a member task");
   const memberAgain = await api("/api/tasks", { cookie: member });
   if (!memberAgain.data.some((task) => task.title === "Member only task")) fail("Member cannot see the moderated task");
 
@@ -207,10 +213,14 @@ async function main() {
   for (const [store, body] of owned) {
     await present(member, store, body.id, "Owner");
     await absent(other, store, body.id, "Other member");
-    await absent(admin, store, body.id, "Admin own workspace");
+    if (store === "tasks" || store === "projects") await present(admin, store, body.id, "Admin own workspace");
+    else await absent(admin, store, body.id, "Admin own workspace");
     if (store === "accounts") await absent(admin, store, body.id, "Admin viewing member", memberId);
     else await present(admin, store, body.id, "Admin viewing member", memberId);
   }
+  const adminExport = await api("/api/export", { cookie: admin });
+  const adminDump = JSON.stringify(adminExport.data);
+  if (adminDump.includes("iso-project") || adminDump.includes("Mina private")) fail("Admin export included another account's rows");
   const spoofMember = await api("/api/projects", { cookie: other, user: memberId });
   if (spoofMember.status !== 403) fail(`Second member spoofed the first, got ${spoofMember.status}`);
   const spoofAdmin = await api("/api/tasks", { cookie: other, user: adminId });

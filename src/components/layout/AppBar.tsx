@@ -75,7 +75,7 @@ export function AppBar({ menuOpen, onMenu }: { menuOpen: boolean; onMenu: () => 
         {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
       <Link to="/" className="flex min-w-0 items-center gap-2">
-        <span className="font-display text-lg font-semibold leading-none text-primary">{t("brand.mark")}</span>
+        <img src="/brand.svg" alt="" width={28} height={28} className="h-7 w-7 shrink-0" />
         <span className="truncate text-sm font-semibold">{t("brand.lifeOs")}</span>
       </Link>
       {page && (

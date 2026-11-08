@@ -1,21 +1,27 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import { useStore } from "@/core/store";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { projectProgress, fmt } from "@/core/utils";
-import { TaskRow } from "@/components/tasks/TaskCard";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { personName, usePeople } from "@/core/people";
+import { authState, subscribeAuth } from "@/core/session";
 import { Plus, FolderKanban, Trash2 } from "lucide-react";
-import { PROJECT_CATEGORY_PRESETS } from "@/core/types";
+import { PROJECT_CATEGORY_PRESETS, type Project } from "@/core/types";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import i18n from "@/core/i18n";
+
+function assignedIds(project: Project, selfId?: string) {
+  if (project.memberIds) return project.memberIds;
+  if (project.managerId && project.managerId !== selfId) return [project.managerId];
+  return [];
+}
 
 export const Route = createFileRoute("/projects")({
   head: () => ({ meta: [
@@ -29,15 +35,12 @@ function ProjectsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const people = usePeople();
+  const me = useSyncExternalStore(subscribeAuth, () => authState().user);
   const { projects, tasks, upsertProject, deleteProject } = useStore();
   const [editing, setEditing] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [openProject, setOpenProject] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>("");
-
-  const open = openProject ? projects.find((p) => p.id === openProject) : null;
-  const openTasks = open ? tasks.filter((t) => t.projectId === open.id && !t.parentTaskId) : [];
   const allCategories = Array.from(
     new Set([...PROJECT_CATEGORY_PRESETS, ...projects.map((p) => p.category).filter(Boolean) as string[]]),
   );
@@ -83,31 +86,35 @@ function ProjectsPage() {
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {visibleProjects.map((p) => {
           const pct = projectProgress(p.id, tasks);
-          const total = tasks.filter((t) => t.projectId === p.id).length;
-          const done = tasks.filter((t) => t.projectId === p.id && t.status === "done").length;
+          const linked = tasks.filter((task) => task.projectId === p.id);
+          const total = linked.length;
+          const done = linked.filter((task) => task.status === "done").length;
+          const names = assignedIds(p, me?.id).map((id) => personName(people, id) || t("common.unknown"));
+          const ownerId = (p as Project & { userId?: string }).userId;
+          const canEdit = me?.role === "admin" || !ownerId || ownerId === me?.id;
           return (
             <div key={p.id}
-              onClick={() => setOpenProject(p.id)}
+              onClick={() => navigate({ to: "/projects/$projectId", params: { projectId: p.id } })}
               className="rounded-xl border bg-card p-5 cursor-pointer hover:border-primary/40 transition-all hover:shadow-soft">
               <div className="flex items-start justify-between mb-3">
                 <div className="h-10 w-10 rounded-lg grid place-items-center" style={{ backgroundColor: `${p.color}25`, color: p.color }}>
                   <FolderKanban className="h-5 w-5" />
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); setEditing(p.id); }}
-                  className="text-xs text-muted-foreground hover:text-foreground">{t("projects.edit")}</button>
+                {canEdit && (
+                  <button onClick={(e) => { e.stopPropagation(); setEditing(p.id); }}
+                    className="text-xs text-muted-foreground hover:text-foreground">{t("projects.edit")}</button>
+                )}
               </div>
               <div className="text-base font-semibold mb-1">{p.name}</div>
-              {(p.category || p.managerId) && (
+              {(p.category || names.length > 0) && (
                 <div className="flex flex-wrap items-center gap-1.5 mb-2">
                   {p.category && (
                     <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded border border-border text-muted-foreground">
                       {p.category}
                     </span>
                   )}
-                  {p.managerId && (
-                    <span className="text-[10px] text-muted-foreground">
-                      {t("tasks.manager", { name: personName(people, p.managerId) || t("common.unknown") })}
-                    </span>
+                  {names.length > 0 && (
+                    <span className="text-[10px] text-muted-foreground truncate">{names.join(", ")}</span>
                   )}
                 </div>
               )}
@@ -135,45 +142,15 @@ function ProjectsPage() {
         projectId={editing}
         onOpenChange={(v) => { if (!v) { setCreating(false); setEditing(null); } }}
         onSubmit={async (data) => {
-          await upsertProject({ id: editing ?? undefined, ...data });
+          await upsertProject({
+            id: editing ?? undefined,
+            ...data,
+            managerId: me?.role === "admin" ? me.id : undefined,
+          });
           setCreating(false); setEditing(null);
         }}
         onDelete={editing ? async () => { await deleteProject(editing); setEditing(null); } : undefined}
       />
-
-      <Dialog open={!!open} onOpenChange={(v) => !v && setOpenProject(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          {open && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: open.color }} />
-                  {open.name}
-                </DialogTitle>
-              </DialogHeader>
-              {open.description && <p className="text-sm text-muted-foreground">{open.description}</p>}
-              <div className="flex items-center justify-between text-xs mb-2">
-                <span className="text-muted-foreground">{openTasks.filter((t) => t.status === "done").length} of {openTasks.length} complete</span>
-                <Button size="sm" variant="outline" onClick={() => navigate({ to: "/tasks/$taskId", params: { taskId: "new" }, search: { projectId: open.id } })}>+ Task</Button>
-              </div>
-              <div className="h-2 rounded-full bg-muted overflow-hidden mb-4">
-                <div className="h-full" style={{ width: `${projectProgress(open.id, tasks)}%`, backgroundColor: open.color }} />
-              </div>
-              <div className="space-y-1">
-                {openTasks.length === 0 && <div className="text-center text-xs text-muted-foreground py-6">{t("projects.noTasks")}</div>}
-                {openTasks.map((t) => (
-                  <div key={t.id}>
-                    <TaskRow task={t} onClick={() => navigate({ to: "/tasks/$taskId", params: { taskId: t.id } })} />
-                    {tasks.filter((c) => c.parentTaskId === t.id).map((c) => (
-                      <div key={c.id} className="ml-7"><TaskRow task={c} onClick={() => navigate({ to: "/tasks/$taskId", params: { taskId: c.id } })} /></div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
 
     </PageContainer>
   );
@@ -183,7 +160,7 @@ function ProjectDialog({
   open, onOpenChange, projectId, onSubmit, onDelete,
 }: {
   open: boolean; onOpenChange: (v: boolean) => void; projectId: string | null;
-  onSubmit: (d: { name: string; description?: string; color?: string; category?: string; managerId?: string | null }) => Promise<void>;
+  onSubmit: (d: { name: string; description?: string; color?: string; category?: string; memberIds?: string[] }) => Promise<void>;
   onDelete?: () => Promise<void>;
 }) {
   const { t } = useTranslation();
@@ -194,7 +171,8 @@ function ProjectDialog({
   const [color, setColor] = useState("#d4a574");
   const [category, setCategory] = useState<string>("");
   const [customCat, setCustomCat] = useState("");
-  const [managerId, setManagerId] = useState("none");
+  const me = useSyncExternalStore(subscribeAuth, () => authState().user);
+  const [memberIds, setMemberIds] = useState<string[]>([]);
 
   // Re-sync on open change
   useEffect(() => {
@@ -203,15 +181,15 @@ function ProjectDialog({
       setDescription(project?.description ?? "");
       setColor(project?.color ?? "#d4a574");
       setCategory(project?.category ?? "");
-      setManagerId(project?.managerId ?? "none");
+      setMemberIds(project ? assignedIds(project, me?.id) : []);
     } else {
       setName("");
       setDescription("");
       setColor("#d4a574");
       setCategory("");
-      setManagerId("none");
+      setMemberIds([]);
     }
-  }, [open, project]);
+  }, [open, project, me?.id]);
 
   const isPreset = !category || (PROJECT_CATEGORY_PRESETS as readonly string[]).includes(category);
 
@@ -222,19 +200,30 @@ function ProjectDialog({
         <div className="space-y-3">
           <div><Label className="text-xs">{t("common.name")}</Label><Input value={name} onChange={(e) => setName(e.target.value)} autoFocus /></div>
           <div><Label className="text-xs">{t("common.description")}</Label><Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
-          <div>
-            <Label className="text-xs">{t("common.manager")}</Label>
-            <Select value={managerId} onValueChange={setManagerId}>
-              <SelectTrigger><SelectValue placeholder={t("common.none")} /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">{t("common.none")}</SelectItem>
-                {managerId !== "none" && !people.some((p) => p.id === managerId) && (
-                  <SelectItem value={managerId}>{t("tasks.unknownUser")}</SelectItem>
+          {me?.role === "admin" && (
+            <div>
+              <Label className="text-xs">{t("projects.members")}</Label>
+              <div className="mt-1 max-h-40 space-y-1 overflow-y-auto rounded-md border p-2">
+                {people.filter((person) => person.id !== me.id).map((person) => {
+                  const on = memberIds.includes(person.id);
+                  return (
+                    <label key={person.id} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={on}
+                        onCheckedChange={(checked) => {
+                          setMemberIds(checked ? [...memberIds, person.id] : memberIds.filter((id) => id !== person.id));
+                        }}
+                      />
+                      {person.name}
+                    </label>
+                  );
+                })}
+                {people.filter((person) => person.id !== me.id).length === 0 && (
+                  <p className="text-xs text-muted-foreground">{t("projects.noMembers")}</p>
                 )}
-                {people.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+              </div>
+            </div>
+          )}
           <div>
             <Label className="text-xs">{t("common.category")}</Label>
             <div className="flex flex-wrap gap-1.5 mt-1">
@@ -287,7 +276,7 @@ function ProjectDialog({
             </Button>
           )}
           <Button variant="outline" onClick={() => { onOpenChange(false); setName(""); }}>{t("common.cancel")}</Button>
-          <Button onClick={async () => { await onSubmit({ name, description, color, category: category || undefined, managerId: managerId === "none" ? null : managerId }); setName(""); setCategory(""); setCustomCat(""); setManagerId("none"); }}>
+          <Button onClick={async () => { await onSubmit({ name, description, color, category: category || undefined, memberIds: me?.role === "admin" ? memberIds : undefined }); setName(""); setCategory(""); setCustomCat(""); setMemberIds([]); }}>
             {projectId ? t("common.save") : t("common.create")}
           </Button>
         </DialogFooter>

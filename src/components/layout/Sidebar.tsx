@@ -2,9 +2,9 @@ import { useSyncExternalStore } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, ListChecks, Calendar, Target, FolderKanban,
-  BarChart3, BookOpen, Settings as SettingsIcon, UserRound, Ellipsis,
+  BarChart3, BookOpen, Settings as SettingsIcon, UserRound,
   Wallet, ArrowLeftRight, Layers, PiggyBank, LineChart,
-  GraduationCap, Shield,
+  GraduationCap, Shield, StickyNote, Timer, Watch, Focus,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -22,15 +22,21 @@ interface NavItemConfig {
 }
 
 const NAV: NavItemConfig[] = [
-  { to: "/", labelKey: "nav.dashboard", icon: LayoutDashboard },
+  { to: "/", labelKey: "nav.dashboard", icon: LayoutDashboard, exact: true },
   { to: "/tasks", labelKey: "nav.tasks", icon: ListChecks },
   { to: "/calendar", labelKey: "nav.calendar", icon: Calendar },
   { to: "/projects", labelKey: "nav.projects", icon: FolderKanban },
   { to: "/goals", labelKey: "nav.goals", icon: Target },
-  { to: "/notes", labelKey: "nav.others", icon: Ellipsis, activePaths: ["/notes", "/pomodoro", "/stopwatch", "/focus"] },
   { to: "/journal", labelKey: "nav.journal", icon: BookOpen },
   { to: "/analytics", labelKey: "nav.analytics", icon: BarChart3 },
   { to: "/learn", labelKey: "nav.learn", icon: GraduationCap },
+];
+
+const OTHERS_NAV: NavItemConfig[] = [
+  { to: "/notes", labelKey: "nav.notes", icon: StickyNote },
+  { to: "/pomodoro", labelKey: "nav.pomodoro", icon: Timer },
+  { to: "/stopwatch", labelKey: "nav.stopwatch", icon: Watch },
+  { to: "/focus", labelKey: "nav.focus", icon: Focus },
 ];
 
 const FINANCE_NAV: NavItemConfig[] = [
@@ -47,7 +53,7 @@ function NavLink({ to, labelKey, icon: Icon, exact, activePaths, currentPath }: 
   const { t } = useTranslation();
   const active = activePaths
     ? activePaths.includes(currentPath)
-    : exact ? currentPath === to : currentPath.startsWith(to);
+    : exact || to === "/" ? currentPath === to : currentPath.startsWith(to);
   return (
     <Link
       to={to}
@@ -90,6 +96,11 @@ export function Sidebar() {
             : item;
           return <NavLink key={link.to} {...link} currentPath={currentPath} />;
         })}
+
+        <SectionHeading>{t("nav.others")}</SectionHeading>
+        {OTHERS_NAV.map((item) => (
+          <NavLink key={item.to} {...item} currentPath={currentPath} />
+        ))}
 
         {financeEnabled && !viewingOther && (
           <>

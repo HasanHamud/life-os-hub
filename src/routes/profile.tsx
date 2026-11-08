@@ -3,6 +3,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -73,6 +74,7 @@ function ProfilePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [photoError, setPhotoError] = useState("");
+  const [confirmRemove, setConfirmRemove] = useState(false);
 
   useEffect(() => {
     setName(user?.name || "");
@@ -144,25 +146,41 @@ function ProfilePage() {
           >
             {user.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : initials(user.name)}
           </div>
-          <label className="mt-4 block text-sm font-medium">
-            {t("profile.changePhoto")}
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              aria-label={t("profile.photo")}
-              className="mt-1 block w-full text-sm font-normal"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                event.target.value = "";
-                void pickPhoto(file);
-              }}
-            />
-          </label>
+          <Button variant="outline" size="sm" className="mt-4" asChild>
+            <label>
+              {t("profile.changePhoto")}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                aria-label={t("profile.photo")}
+                className="sr-only"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  void pickPhoto(file);
+                }}
+              />
+            </label>
+          </Button>
           {user.avatar ? (
-            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => void clearPhoto()}>
+            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => setConfirmRemove(true)}>
               {t("profile.removePhoto")}
             </Button>
           ) : null}
+          <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t("profile.confirmRemovePhoto")}</AlertDialogTitle>
+                <AlertDialogDescription>{t("profile.confirmRemovePhotoBody")}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                <AlertDialogAction onClick={(event) => { event.preventDefault(); void clearPhoto().then(() => setConfirmRemove(false)); }}>
+                  {t("profile.removePhoto")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           {photoError ? <p className="mt-2 text-sm text-destructive" role="alert">{photoError}</p> : null}
           <h2 className="mt-4 text-lg font-semibold">{user.name}</h2>
           <p className="text-sm text-muted-foreground">{user.email}</p>

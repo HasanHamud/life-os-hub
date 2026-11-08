@@ -3,8 +3,8 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import { router } from "./router";
 import { getOne } from "./core/db";
-import { applyTheme, DEFAULT_THEME } from "./core/theme";
-import { applyLocale } from "./core/locale";
+import { applyTheme, DEFAULT_THEME, rememberedTheme } from "./core/theme";
+import { applyLocale, rememberedLocale } from "./core/locale";
 import "./styles.css";
 
 class ErrorBoundary extends Component<{ children: React.ReactNode }, { error: Error | null }> {
@@ -39,11 +39,11 @@ if (!root) {
 async function bootstrap(container: HTMLElement) {
   try {
     const settings = await getOne<{ theme?: unknown; locale?: unknown }>("settings", "global");
-    applyTheme(settings?.theme ?? DEFAULT_THEME);
-    await applyLocale(settings?.locale);
+    applyTheme(settings?.theme ?? rememberedTheme() ?? DEFAULT_THEME);
+    await applyLocale(settings?.locale ?? rememberedLocale());
   } catch {
-    applyTheme(DEFAULT_THEME);
-    await applyLocale("en");
+    applyTheme(rememberedTheme() ?? DEFAULT_THEME);
+    await applyLocale(rememberedLocale());
   }
 
   try {

@@ -368,9 +368,15 @@ function openAt(dbPath) {
   if (!taskColumns.some((column) => column.name === "assigneeId")) {
     db.exec("alter table tasks add column assigneeId text");
   }
+  if (!taskColumns.some((column) => column.name === "createdBy")) {
+    db.exec("alter table tasks add column createdBy text");
+  }
   const projectColumns = db.prepare("pragma table_info(projects)").all();
   if (!projectColumns.some((column) => column.name === "managerId")) {
     db.exec("alter table projects add column managerId text");
+  }
+  if (!projectColumns.some((column) => column.name === "memberIds")) {
+    db.exec("alter table projects add column memberIds text");
   }
 
   const logColumns = db.prepare("pragma table_info(logs)").all();
@@ -558,9 +564,141 @@ function redactSnapshot(row) {
   return row;
 }
 
-function getAll(store) {
+function userRole(userId) {
+  const row = db.prepare("select role from users where id = ?").get(userId);
+  return row ? row.role : "member";
+}
+
+function actorIsAdmin() {
+  return userRole(currentActorId()) === "admin";
+}
+
+function managerView() {
+  return userRole(currentUserId()) === "admin" && currentActorId() === currentUserId();
+}
+
+function assignedMembers(row) {
+  if (!row) return [];
+  let ids = row.memberIds;
+  if (typeof ids === "string") {
+    try { ids = JSON.parse(ids); } catch { ids = []; }
+  }
+  if (!Array.isArray(ids)) ids = [];
+  ids = ids.filter((id) => typeof id === "string" && id);
+  if (ids.length) return ids;
+  return row.managerId ? [row.managerId] : [];
+}
+
+function cleanMemberIds(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((id) => typeof id === "string" && id))];
+}
+
+function memberAccountIds() {
+  return db.prepare("select id from users where role = 'member'").all().map((row) => row.id);
+}
+
+function rowsByUserIds(store, ids) {
+  if (!ids.length) return [];
+  return db.prepare(`select * from ${store} where userId in (${ids.map(() => "?").join(",")})`).all(...ids);
+}
+
+function dedupeRows(rows) {
+  const seen = new Set();
+  const out = [];
+  for (const row of rows) {
+    if (seen.has(row.id)) continue;
+    seen.add(row.id);
+    out.push(parseRow(row));
+  }
+  return out;
+}
+
+function visibleProjectRows() {
+  const userId = currentUserId();
+  const owned = db.prepare("select * from projects where userId = ?").all(userId);
+  const extra = managerView()
+    ? rowsByUserIds("projects", memberAccountIds())
+    : db.prepare("select * from projects where userId != ?").all(userId)
+      .filter((row) => assignedMembers(row).includes(userId));
+  return dedupeRows(owned.concat(extra));
+}
+
+function visibleTaskRows() {
+  const userId = currentUserId();
+  const owned = db.prepare("select * from tasks where userId = ?").all(userId);
+  let extra = [];
+  if (managerView()) {
+    extra = rowsByUserIds("tasks", memberAccountIds());
+  } else {
+    const projectIds = visibleProjectRows()
+      .filter((project) => project.userId !== userId)
+      .map((project) => project.id);
+    if (projectIds.length) {
+      extra = db.prepare(
+        `select * from tasks where projectId in (${projectIds.map(() => "?").join(",")})`
+      ).all(...projectIds);
+    }
+  }
+  const rows = owned.concat(extra);
+  const seen = new Set(rows.map((row) => row.id));
+  const parents = new Map(rows.map((row) => [row.id, row]));
+  const parentIds = [...seen];
+  if (parentIds.length) {
+    const children = db.prepare(
+      `select * from tasks where parentTaskId in (${parentIds.map(() => "?").join(",")})`
+    ).all(...parentIds);
+    for (const child of children) {
+      const parent = parents.get(child.parentTaskId);
+      if (!parent || seen.has(child.id)) continue;
+      if (child.userId !== parent.userId && child.projectId !== parent.projectId) continue;
+      seen.add(child.id);
+      rows.push(child);
+    }
+  }
+  return dedupeRows(rows);
+}
+
+function canWriteTask(row) {
+  if (!row) return false;
+  if (actorIsAdmin()) return true;
+  const actor = currentActorId();
+  if (row.userId === actor || row.userId === currentUserId()) return true;
+  if (!row.projectId) return false;
+  const project = db.prepare("select * from projects where id = ?").get(row.projectId);
+  return !!project && (project.userId === actor || assignedMembers(project).includes(actor));
+}
+
+function notifyShare(store, row) {
+  const scoped = userScope.getStore();
+  if (scoped && scoped.quiet) return;
+  if (store !== "tasks" && store !== "projects") return;
+  const ids = new Set();
+  if (row.userId) ids.add(row.userId);
+  for (const admin of db.prepare("select id from users where role = 'admin' and active = 1").all()) {
+    ids.add(admin.id);
+  }
+  if (store === "projects") {
+    for (const id of assignedMembers(row)) ids.add(id);
+  }
+  if (store === "tasks") {
+    if (row.createdBy) ids.add(row.createdBy);
+    if (row.projectId) {
+      const project = db.prepare("select * from projects where id = ?").get(row.projectId);
+      if (project) {
+        if (project.userId) ids.add(project.userId);
+        for (const id of assignedMembers(project)) ids.add(id);
+      }
+    }
+  }
+  emitWorkspace({ type: "changed", userIds: [...ids] });
+}
+
+function getAll(store, ownedOnly = false) {
   assertStore(store);
   if (viewingOtherFinance() && FINANCE_STORES.includes(store)) return [];
+  if (!ownedOnly && store === "projects") return visibleProjectRows();
+  if (!ownedOnly && store === "tasks") return visibleTaskRows();
   const rows = db.prepare(`select * from ${store} where userId = ?`).all(currentUserId()).map(parseRow);
   return store === "snapshots" ? rows.map(redactSnapshot) : rows;
 }
@@ -568,6 +706,8 @@ function getAll(store) {
 function getOne(store, id) {
   assertStore(store);
   denyOtherFinance(store);
+  if (store === "projects") return visibleProjectRows().find((row) => row.id === id);
+  if (store === "tasks") return visibleTaskRows().find((row) => row.id === id);
   const row = db.prepare(`select * from ${store} where id = ? and userId = ?`).get(ownedId(store, id), currentUserId());
   return row ? redactSnapshot(parseRow(row)) : undefined;
 }
@@ -590,25 +730,61 @@ function putOne(store, value) {
     delete row.adminNoteAt;
     delete row.adminNoteBy;
   }
-  const keys = Object.keys(row);
-  for (const key of keys) assertIdent(key);
-  const existing = (store === "tasks" || store === "logs")
+  const existing = (store === "tasks" || store === "logs" || store === "projects")
     ? db.prepare(`select * from ${store} where id = ?`).get(row.id)
     : db.prepare(`select userId from ${store} where id = ?`).get(row.id);
+  if (store === "projects") {
+    if (existing && existing.userId !== userId) {
+      if (!(actorIsAdmin() && currentActorId() === currentUserId())) throw new Error("Not found");
+      row.userId = existing.userId;
+    }
+    if (actorIsAdmin()) {
+      row.managerId = currentActorId();
+      row.memberIds = Array.isArray(value.memberIds) ? cleanMemberIds(value.memberIds) : assignedMembers(existing);
+    } else if (existing) {
+      row.memberIds = assignedMembers(existing);
+      row.managerId = existing.managerId || null;
+    } else {
+      row.memberIds = [];
+      row.managerId = null;
+    }
+  }
+  if (store === "tasks") {
+    if (!existing) row.createdBy = currentActorId();
+    else row.createdBy = existing.createdBy || null;
+    if (row.projectId) {
+      const project = db.prepare("select * from projects where id = ?").get(row.projectId);
+      if (!project) throw new Error("Unknown project");
+      const actor = currentActorId();
+      if (!actorIsAdmin() && project.userId !== actor && !assignedMembers(project).includes(actor)) {
+        const error = new Error("Forbidden");
+        error.status = 403;
+        throw error;
+      }
+      row.userId = project.userId;
+    } else if (existing && existing.userId !== userId) {
+      if (!(actorIsAdmin() && currentActorId() === currentUserId())) throw new Error("Not found");
+      row.userId = existing.userId;
+    }
+    if (existing && !canWriteTask(existing)) throw new Error("Not found");
+  }
   // shortcut: an import keeps its ids, so a row already owned by someone else is rejected
-  if (existing && existing.userId !== userId) throw new Error("Not found");
+  if (store !== "tasks" && store !== "projects" && existing && existing.userId !== userId) throw new Error("Not found");
+  const keys = Object.keys(row);
+  for (const key of keys) assertIdent(key);
   if (existing) {
     const setKeys = keys.filter((k) => k !== "id");
     const setClause = setKeys.map((k) => `${k} = ?`).join(", ");
     const vals = setKeys.map((k) => serializeValue(row[k]));
-    db.prepare(`update ${store} set ${setClause} where id = ? and userId = ?`).run(...vals, row.id, userId);
+    db.prepare(`update ${store} set ${setClause} where id = ? and userId = ?`).run(...vals, row.id, existing.userId);
   } else {
     const placeholders = keys.map(() => "?").join(", ");
     const vals = keys.map((k) => serializeValue(row[k]));
     db.prepare(`insert into ${store} (${keys.join(", ")}) values (${placeholders})`).run(...vals);
   }
-  recordActivity(userId, currentActorId(), store, existing ? "updated" : "created");
+  recordActivity(row.userId, currentActorId(), store, existing ? "updated" : "created");
   maybeNotify(store, existing, row);
+  notifyShare(store, row);
   return row;
 }
 
@@ -681,6 +857,19 @@ function markAllNotificationsRead(userId) {
 function delOne(store, id) {
   assertStore(store);
   denyOtherFinance(store);
+  if (store === "tasks" || store === "projects") {
+    const rows = store === "tasks" ? visibleTaskRows() : visibleProjectRows();
+    const row = rows.find((item) => item.id === id);
+    if (!row) throw new Error("Not found");
+    if (store === "projects" && row.userId !== currentUserId() && !actorIsAdmin()) throw new Error("Not found");
+    if (store === "tasks" && !canWriteTask(row)) throw new Error("Not found");
+    const result = db.prepare(`delete from ${store} where id = ? and userId = ?`).run(id, row.userId);
+    if (result.changes) {
+      recordActivity(row.userId, currentActorId(), store, "deleted");
+      notifyShare(store, row);
+    }
+    return;
+  }
   const userId = currentUserId();
   const result = db.prepare(`delete from ${store} where id = ? and userId = ?`).run(ownedId(store, id), userId);
   if (result.changes) recordActivity(userId, currentActorId(), store, "deleted");
@@ -710,7 +899,7 @@ function exportAll() {
   const hidden = viewingOtherFinance();
   for (const table of TABLES) {
     if (hidden && FINANCE_STORES.includes(table)) continue;
-    data[table] = getAll(table);
+    data[table] = getAll(table, true);
   }
   return data;
 }
