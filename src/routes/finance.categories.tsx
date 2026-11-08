@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "@/core/store";
+import i18n from "@/core/i18n";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,11 +16,12 @@ import type { Category, CategoryType } from "@/core/finance-types";
 import { categoryPath } from "@/core/finance-utils";
 
 export const Route = createFileRoute("/finance/categories")({
-  head: () => ({ meta: [{ title: "Categories — Finance" }] }),
+  head: () => ({ meta: [{ title: i18n.t("meta.categories") }] }),
   component: CategoriesPage,
 });
 
 function CategoriesPage() {
+  const { t } = useTranslation();
   const { categories, upsertCategory, deleteCategory } = useStore();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
@@ -31,21 +34,21 @@ function CategoriesPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="Categories"
+        title={t("finance.categories")}
         description="Hierarchical categories with color coding."
-        actions={<Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}><Plus className="h-4 w-4 mr-1" /> Add category</Button>}
+        actions={<Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}><Plus className="h-4 w-4 me-1" /> Add category</Button>}
       />
 
       <div className="inline-flex rounded-md border bg-card p-1 mb-4">
-        {(["expense", "income"] as CategoryType[]).map((t) => (
+        {(["expense", "income"] as CategoryType[]).map((kind) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={kind}
+            onClick={() => setTab(kind)}
             className={cn(
-              "px-4 py-1.5 text-xs rounded font-medium capitalize transition",
-              tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+              "px-4 py-1.5 text-xs rounded font-medium transition",
+              tab === kind ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
             )}
-          >{t}</button>
+          >{t(kind === "expense" ? "finance.expense" : "finance.income")}</button>
         ))}
       </div>
 
@@ -100,6 +103,7 @@ function CategoryDialog({
   categories: Category[];
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [type, setType] = useState<CategoryType>("expense");
   const [parent, setParent] = useState<string>("none");
@@ -121,7 +125,7 @@ function CategoryDialog({
   const reset = () => { setName(""); setType(defaultType); setParent("none"); setColor("#d4a574"); };
 
   const submit = async () => {
-    if (!name.trim()) return toast.error("Name required");
+    if (!name.trim()) return toast.error(t("errors.nameRequiredShort"));
     const isNew = !category;
     await onUpsert({
       id: category?.id,
@@ -130,7 +134,7 @@ function CategoryDialog({
       parentCategoryId: parent === "none" ? undefined : parent,
       color,
     });
-    toast.success(isNew ? "Category added" : "Category updated");
+    toast.success(isNew ? t("finance.categoryAdded") : t("finance.categoryUpdated"));
     reset(); onClose();
   };
 
@@ -138,7 +142,7 @@ function CategoryDialog({
     if (!category) return;
     if (!confirm(`Delete "${category.name}" and its children?`)) return;
     await onDelete(category.id);
-    toast.success("Category deleted");
+    toast.success(t("finance.categoryDeleted"));
     reset(); onClose();
   };
 
@@ -152,29 +156,29 @@ function CategoryDialog({
         <DialogHeader><DialogTitle>{category ? "Edit category" : "New category"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div>
-            <Label className="text-xs">Name</Label>
+            <Label className="text-xs">{t("common.name")}</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Type</Label>
+              <Label className="text-xs">{t("common.type")}</Label>
               <Select value={type} onValueChange={(v) => { setType(v as CategoryType); setParent("none"); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="expense">Expense</SelectItem>
-                  <SelectItem value="income">Income</SelectItem>
+                  <SelectItem value="expense">{t("finance.expense")}</SelectItem>
+                  <SelectItem value="income">{t("finance.income")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Color</Label>
+              <Label className="text-xs">{t("common.color")}</Label>
               <Input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-9 p-1" />
             </div>
           </div>
           <div>
-            <Label className="text-xs">Parent (optional)</Label>
+            <Label className="text-xs">{t("more.parentOptional")}</Label>
             <Select value={parent} onValueChange={setParent}>
-              <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("common.none")} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">— None (top-level) —</SelectItem>
                 {possibleParents.map((c) => <SelectItem key={c.id} value={c.id}>{categoryPath(c, categories)}</SelectItem>)}
@@ -185,11 +189,11 @@ function CategoryDialog({
         <DialogFooter>
           {category && (
             <Button variant="ghost" onClick={remove} className="mr-auto text-destructive hover:text-destructive">
-              <Trash2 className="h-4 w-4 mr-1" /> Delete
+              <Trash2 className="h-4 w-4 me-1" /> {t("common.delete")}
             </Button>
           )}
-          <Button variant="outline" onClick={() => { reset(); onOpenChange(false); }}>Cancel</Button>
-          <Button onClick={submit}>{category ? "Save" : "Add"}</Button>
+          <Button variant="outline" onClick={() => { reset(); onOpenChange(false); }}>{t("common.cancel")}</Button>
+          <Button onClick={submit}>{category ? t("common.save") : t("finance.add")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

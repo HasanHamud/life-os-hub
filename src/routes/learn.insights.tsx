@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import i18n from "@/core/i18n";
 import { useLearnStore } from "@/core/learn-store";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -11,7 +13,7 @@ import { Plus, Lightbulb } from "lucide-react";
 export const Route = createFileRoute("/learn/insights")({
   head: () => ({
     meta: [
-      { title: "Insights — Life OS" },
+      { title: i18n.t("meta.insights") },
       { name: "description", content: "Learning insights journal — track what you learn every day." },
     ],
   }),
@@ -19,6 +21,7 @@ export const Route = createFileRoute("/learn/insights")({
 });
 
 function InsightsPage() {
+  const { t } = useTranslation();
   const { insights, distinctSubjects, upsertInsight, deleteInsight } = useLearnStore();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -38,11 +41,11 @@ function InsightsPage() {
   return (
     <div>
       <PageHeader
-        title="Insights"
+        title={t("learn.insights")}
         description="Log what you learn. One key idea per session."
         actions={
           <Button onClick={() => setCreating(true)}>
-            <Plus className="h-4 w-4 mr-1" />New Insight
+            <Plus className="h-4 w-4 me-1" />{t("learn.newInsight")}
           </Button>
         }
       />
@@ -50,9 +53,9 @@ function InsightsPage() {
       {insights.length > 0 && (
         <div className="mb-4 flex items-center gap-2">
           <Select value={filterSubject} onValueChange={setFilterSubject}>
-            <SelectTrigger className="w-40"><SelectValue placeholder="All subjects" /></SelectTrigger>
+            <SelectTrigger className="w-40"><SelectValue placeholder={t("learn.allSubjects")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All subjects</SelectItem>
+              <SelectItem value="all">{t("learn.allSubjects")}</SelectItem>
               {subjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>

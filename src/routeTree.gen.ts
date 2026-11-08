@@ -9,24 +9,23 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TimeRouteImport } from './routes/time'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as TagsRouteImport } from './routes/tags'
-import { Route as StopwatchRouteImport } from './routes/stopwatch'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ProjectsRouteImport } from './routes/projects'
-import { Route as PomodoroRouteImport } from './routes/pomodoro'
-import { Route as NotesRouteImport } from './routes/notes'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LearnRouteImport } from './routes/learn'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as GoalsRouteImport } from './routes/goals'
-import { Route as FocusRouteImport } from './routes/focus'
 import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as OthersRouteImport } from './routes/_others'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LearnIndexRouteImport } from './routes/learn.index'
 import { Route as FinanceIndexRouteImport } from './routes/finance.index'
+import { Route as TasksTaskIdRouteImport } from './routes/tasks_.$taskId'
 import { Route as LearnProgressRouteImport } from './routes/learn.progress'
 import { Route as LearnProblemsRouteImport } from './routes/learn.problems'
 import { Route as LearnInsightsRouteImport } from './routes/learn.insights'
@@ -37,12 +36,12 @@ import { Route as FinanceCategoriesRouteImport } from './routes/finance.categori
 import { Route as FinanceBudgetsRouteImport } from './routes/finance.budgets'
 import { Route as FinanceAnalyticsRouteImport } from './routes/finance.analytics'
 import { Route as FinanceAccountsRouteImport } from './routes/finance.accounts'
+import { Route as AdminJournalsRouteImport } from './routes/admin.journals'
+import { Route as OthersStopwatchRouteImport } from './routes/_others/stopwatch'
+import { Route as OthersPomodoroRouteImport } from './routes/_others/pomodoro'
+import { Route as OthersNotesRouteImport } from './routes/_others/notes'
+import { Route as OthersFocusRouteImport } from './routes/_others/focus'
 
-const TimeRoute = TimeRouteImport.update({
-  id: '/time',
-  path: '/time',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TasksRoute = TasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
@@ -51,11 +50,6 @@ const TasksRoute = TasksRouteImport.update({
 const TagsRoute = TagsRouteImport.update({
   id: '/tags',
   path: '/tags',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StopwatchRoute = StopwatchRouteImport.update({
-  id: '/stopwatch',
-  path: '/stopwatch',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -68,14 +62,9 @@ const ProjectsRoute = ProjectsRouteImport.update({
   path: '/projects',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PomodoroRoute = PomodoroRouteImport.update({
-  id: '/pomodoro',
-  path: '/pomodoro',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotesRoute = NotesRouteImport.update({
-  id: '/notes',
-  path: '/notes',
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LearnRoute = LearnRouteImport.update({
@@ -93,11 +82,6 @@ const GoalsRoute = GoalsRouteImport.update({
   path: '/goals',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FocusRoute = FocusRouteImport.update({
-  id: '/focus',
-  path: '/focus',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const FinanceRoute = FinanceRouteImport.update({
   id: '/finance',
   path: '/finance',
@@ -111,6 +95,15 @@ const CalendarRoute = CalendarRouteImport.update({
 const AnalyticsRoute = AnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OthersRoute = OthersRouteImport.update({
+  id: '/_others',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -127,6 +120,11 @@ const FinanceIndexRoute = FinanceIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => FinanceRoute,
+} as any)
+const TasksTaskIdRoute = TasksTaskIdRouteImport.update({
+  id: '/tasks_/$taskId',
+  path: '/tasks/$taskId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const LearnProgressRoute = LearnProgressRouteImport.update({
   id: '/progress',
@@ -178,24 +176,51 @@ const FinanceAccountsRoute = FinanceAccountsRouteImport.update({
   path: '/accounts',
   getParentRoute: () => FinanceRoute,
 } as any)
+const AdminJournalsRoute = AdminJournalsRouteImport.update({
+  id: '/journals',
+  path: '/journals',
+  getParentRoute: () => AdminRoute,
+} as any)
+const OthersStopwatchRoute = OthersStopwatchRouteImport.update({
+  id: '/stopwatch',
+  path: '/stopwatch',
+  getParentRoute: () => OthersRoute,
+} as any)
+const OthersPomodoroRoute = OthersPomodoroRouteImport.update({
+  id: '/pomodoro',
+  path: '/pomodoro',
+  getParentRoute: () => OthersRoute,
+} as any)
+const OthersNotesRoute = OthersNotesRouteImport.update({
+  id: '/notes',
+  path: '/notes',
+  getParentRoute: () => OthersRoute,
+} as any)
+const OthersFocusRoute = OthersFocusRouteImport.update({
+  id: '/focus',
+  path: '/focus',
+  getParentRoute: () => OthersRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/analytics': typeof AnalyticsRoute
   '/calendar': typeof CalendarRoute
   '/finance': typeof FinanceRouteWithChildren
-  '/focus': typeof FocusRoute
   '/goals': typeof GoalsRoute
   '/journal': typeof JournalRoute
   '/learn': typeof LearnRouteWithChildren
-  '/notes': typeof NotesRoute
-  '/pomodoro': typeof PomodoroRoute
+  '/profile': typeof ProfileRoute
   '/projects': typeof ProjectsRoute
   '/settings': typeof SettingsRoute
-  '/stopwatch': typeof StopwatchRoute
   '/tags': typeof TagsRoute
   '/tasks': typeof TasksRoute
-  '/time': typeof TimeRoute
+  '/focus': typeof OthersFocusRoute
+  '/notes': typeof OthersNotesRoute
+  '/pomodoro': typeof OthersPomodoroRoute
+  '/stopwatch': typeof OthersStopwatchRoute
+  '/admin/journals': typeof AdminJournalsRoute
   '/finance/accounts': typeof FinanceAccountsRoute
   '/finance/analytics': typeof FinanceAnalyticsRoute
   '/finance/budgets': typeof FinanceBudgetsRoute
@@ -206,24 +231,27 @@ export interface FileRoutesByFullPath {
   '/learn/insights': typeof LearnInsightsRoute
   '/learn/problems': typeof LearnProblemsRoute
   '/learn/progress': typeof LearnProgressRoute
+  '/tasks/$taskId': typeof TasksTaskIdRoute
   '/finance/': typeof FinanceIndexRoute
   '/learn/': typeof LearnIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/analytics': typeof AnalyticsRoute
   '/calendar': typeof CalendarRoute
-  '/focus': typeof FocusRoute
   '/goals': typeof GoalsRoute
   '/journal': typeof JournalRoute
-  '/notes': typeof NotesRoute
-  '/pomodoro': typeof PomodoroRoute
+  '/profile': typeof ProfileRoute
   '/projects': typeof ProjectsRoute
   '/settings': typeof SettingsRoute
-  '/stopwatch': typeof StopwatchRoute
   '/tags': typeof TagsRoute
   '/tasks': typeof TasksRoute
-  '/time': typeof TimeRoute
+  '/focus': typeof OthersFocusRoute
+  '/notes': typeof OthersNotesRoute
+  '/pomodoro': typeof OthersPomodoroRoute
+  '/stopwatch': typeof OthersStopwatchRoute
+  '/admin/journals': typeof AdminJournalsRoute
   '/finance/accounts': typeof FinanceAccountsRoute
   '/finance/analytics': typeof FinanceAnalyticsRoute
   '/finance/budgets': typeof FinanceBudgetsRoute
@@ -234,27 +262,31 @@ export interface FileRoutesByTo {
   '/learn/insights': typeof LearnInsightsRoute
   '/learn/problems': typeof LearnProblemsRoute
   '/learn/progress': typeof LearnProgressRoute
+  '/tasks/$taskId': typeof TasksTaskIdRoute
   '/finance': typeof FinanceIndexRoute
   '/learn': typeof LearnIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_others': typeof OthersRouteWithChildren
+  '/admin': typeof AdminRouteWithChildren
   '/analytics': typeof AnalyticsRoute
   '/calendar': typeof CalendarRoute
   '/finance': typeof FinanceRouteWithChildren
-  '/focus': typeof FocusRoute
   '/goals': typeof GoalsRoute
   '/journal': typeof JournalRoute
   '/learn': typeof LearnRouteWithChildren
-  '/notes': typeof NotesRoute
-  '/pomodoro': typeof PomodoroRoute
+  '/profile': typeof ProfileRoute
   '/projects': typeof ProjectsRoute
   '/settings': typeof SettingsRoute
-  '/stopwatch': typeof StopwatchRoute
   '/tags': typeof TagsRoute
   '/tasks': typeof TasksRoute
-  '/time': typeof TimeRoute
+  '/_others/focus': typeof OthersFocusRoute
+  '/_others/notes': typeof OthersNotesRoute
+  '/_others/pomodoro': typeof OthersPomodoroRoute
+  '/_others/stopwatch': typeof OthersStopwatchRoute
+  '/admin/journals': typeof AdminJournalsRoute
   '/finance/accounts': typeof FinanceAccountsRoute
   '/finance/analytics': typeof FinanceAnalyticsRoute
   '/finance/budgets': typeof FinanceBudgetsRoute
@@ -265,6 +297,7 @@ export interface FileRoutesById {
   '/learn/insights': typeof LearnInsightsRoute
   '/learn/problems': typeof LearnProblemsRoute
   '/learn/progress': typeof LearnProgressRoute
+  '/tasks_/$taskId': typeof TasksTaskIdRoute
   '/finance/': typeof FinanceIndexRoute
   '/learn/': typeof LearnIndexRoute
 }
@@ -272,21 +305,23 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/analytics'
     | '/calendar'
     | '/finance'
-    | '/focus'
     | '/goals'
     | '/journal'
     | '/learn'
-    | '/notes'
-    | '/pomodoro'
+    | '/profile'
     | '/projects'
     | '/settings'
-    | '/stopwatch'
     | '/tags'
     | '/tasks'
-    | '/time'
+    | '/focus'
+    | '/notes'
+    | '/pomodoro'
+    | '/stopwatch'
+    | '/admin/journals'
     | '/finance/accounts'
     | '/finance/analytics'
     | '/finance/budgets'
@@ -297,24 +332,27 @@ export interface FileRouteTypes {
     | '/learn/insights'
     | '/learn/problems'
     | '/learn/progress'
+    | '/tasks/$taskId'
     | '/finance/'
     | '/learn/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/analytics'
     | '/calendar'
-    | '/focus'
     | '/goals'
     | '/journal'
-    | '/notes'
-    | '/pomodoro'
+    | '/profile'
     | '/projects'
     | '/settings'
-    | '/stopwatch'
     | '/tags'
     | '/tasks'
-    | '/time'
+    | '/focus'
+    | '/notes'
+    | '/pomodoro'
+    | '/stopwatch'
+    | '/admin/journals'
     | '/finance/accounts'
     | '/finance/analytics'
     | '/finance/budgets'
@@ -325,26 +363,30 @@ export interface FileRouteTypes {
     | '/learn/insights'
     | '/learn/problems'
     | '/learn/progress'
+    | '/tasks/$taskId'
     | '/finance'
     | '/learn'
   id:
     | '__root__'
     | '/'
+    | '/_others'
+    | '/admin'
     | '/analytics'
     | '/calendar'
     | '/finance'
-    | '/focus'
     | '/goals'
     | '/journal'
     | '/learn'
-    | '/notes'
-    | '/pomodoro'
+    | '/profile'
     | '/projects'
     | '/settings'
-    | '/stopwatch'
     | '/tags'
     | '/tasks'
-    | '/time'
+    | '/_others/focus'
+    | '/_others/notes'
+    | '/_others/pomodoro'
+    | '/_others/stopwatch'
+    | '/admin/journals'
     | '/finance/accounts'
     | '/finance/analytics'
     | '/finance/budgets'
@@ -355,38 +397,31 @@ export interface FileRouteTypes {
     | '/learn/insights'
     | '/learn/problems'
     | '/learn/progress'
+    | '/tasks_/$taskId'
     | '/finance/'
     | '/learn/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  OthersRoute: typeof OthersRouteWithChildren
+  AdminRoute: typeof AdminRouteWithChildren
   AnalyticsRoute: typeof AnalyticsRoute
   CalendarRoute: typeof CalendarRoute
   FinanceRoute: typeof FinanceRouteWithChildren
-  FocusRoute: typeof FocusRoute
   GoalsRoute: typeof GoalsRoute
   JournalRoute: typeof JournalRoute
   LearnRoute: typeof LearnRouteWithChildren
-  NotesRoute: typeof NotesRoute
-  PomodoroRoute: typeof PomodoroRoute
+  ProfileRoute: typeof ProfileRoute
   ProjectsRoute: typeof ProjectsRoute
   SettingsRoute: typeof SettingsRoute
-  StopwatchRoute: typeof StopwatchRoute
   TagsRoute: typeof TagsRoute
   TasksRoute: typeof TasksRoute
-  TimeRoute: typeof TimeRoute
+  TasksTaskIdRoute: typeof TasksTaskIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/time': {
-      id: '/time'
-      path: '/time'
-      fullPath: '/time'
-      preLoaderRoute: typeof TimeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/tasks': {
       id: '/tasks'
       path: '/tasks'
@@ -399,13 +434,6 @@ declare module '@tanstack/react-router' {
       path: '/tags'
       fullPath: '/tags'
       preLoaderRoute: typeof TagsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/stopwatch': {
-      id: '/stopwatch'
-      path: '/stopwatch'
-      fullPath: '/stopwatch'
-      preLoaderRoute: typeof StopwatchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -422,18 +450,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/pomodoro': {
-      id: '/pomodoro'
-      path: '/pomodoro'
-      fullPath: '/pomodoro'
-      preLoaderRoute: typeof PomodoroRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notes': {
-      id: '/notes'
-      path: '/notes'
-      fullPath: '/notes'
-      preLoaderRoute: typeof NotesRouteImport
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/learn': {
@@ -457,13 +478,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GoalsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/focus': {
-      id: '/focus'
-      path: '/focus'
-      fullPath: '/focus'
-      preLoaderRoute: typeof FocusRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/finance': {
       id: '/finance'
       path: '/finance'
@@ -483,6 +497,20 @@ declare module '@tanstack/react-router' {
       path: '/analytics'
       fullPath: '/analytics'
       preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_others': {
+      id: '/_others'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof OthersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -505,6 +533,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/finance/'
       preLoaderRoute: typeof FinanceIndexRouteImport
       parentRoute: typeof FinanceRoute
+    }
+    '/tasks_/$taskId': {
+      id: '/tasks_/$taskId'
+      path: '/tasks/$taskId'
+      fullPath: '/tasks/$taskId'
+      preLoaderRoute: typeof TasksTaskIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/learn/progress': {
       id: '/learn/progress'
@@ -576,8 +611,70 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FinanceAccountsRouteImport
       parentRoute: typeof FinanceRoute
     }
+    '/admin/journals': {
+      id: '/admin/journals'
+      path: '/journals'
+      fullPath: '/admin/journals'
+      preLoaderRoute: typeof AdminJournalsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_others/stopwatch': {
+      id: '/_others/stopwatch'
+      path: '/stopwatch'
+      fullPath: '/stopwatch'
+      preLoaderRoute: typeof OthersStopwatchRouteImport
+      parentRoute: typeof OthersRoute
+    }
+    '/_others/pomodoro': {
+      id: '/_others/pomodoro'
+      path: '/pomodoro'
+      fullPath: '/pomodoro'
+      preLoaderRoute: typeof OthersPomodoroRouteImport
+      parentRoute: typeof OthersRoute
+    }
+    '/_others/notes': {
+      id: '/_others/notes'
+      path: '/notes'
+      fullPath: '/notes'
+      preLoaderRoute: typeof OthersNotesRouteImport
+      parentRoute: typeof OthersRoute
+    }
+    '/_others/focus': {
+      id: '/_others/focus'
+      path: '/focus'
+      fullPath: '/focus'
+      preLoaderRoute: typeof OthersFocusRouteImport
+      parentRoute: typeof OthersRoute
+    }
   }
 }
+
+interface OthersRouteChildren {
+  OthersFocusRoute: typeof OthersFocusRoute
+  OthersNotesRoute: typeof OthersNotesRoute
+  OthersPomodoroRoute: typeof OthersPomodoroRoute
+  OthersStopwatchRoute: typeof OthersStopwatchRoute
+}
+
+const OthersRouteChildren: OthersRouteChildren = {
+  OthersFocusRoute: OthersFocusRoute,
+  OthersNotesRoute: OthersNotesRoute,
+  OthersPomodoroRoute: OthersPomodoroRoute,
+  OthersStopwatchRoute: OthersStopwatchRoute,
+}
+
+const OthersRouteWithChildren =
+  OthersRoute._addFileChildren(OthersRouteChildren)
+
+interface AdminRouteChildren {
+  AdminJournalsRoute: typeof AdminJournalsRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminJournalsRoute: AdminJournalsRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface FinanceRouteChildren {
   FinanceAccountsRoute: typeof FinanceAccountsRoute
@@ -622,21 +719,20 @@ const LearnRouteWithChildren = LearnRoute._addFileChildren(LearnRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  OthersRoute: OthersRouteWithChildren,
+  AdminRoute: AdminRouteWithChildren,
   AnalyticsRoute: AnalyticsRoute,
   CalendarRoute: CalendarRoute,
   FinanceRoute: FinanceRouteWithChildren,
-  FocusRoute: FocusRoute,
   GoalsRoute: GoalsRoute,
   JournalRoute: JournalRoute,
   LearnRoute: LearnRouteWithChildren,
-  NotesRoute: NotesRoute,
-  PomodoroRoute: PomodoroRoute,
+  ProfileRoute: ProfileRoute,
   ProjectsRoute: ProjectsRoute,
   SettingsRoute: SettingsRoute,
-  StopwatchRoute: StopwatchRoute,
   TagsRoute: TagsRoute,
   TasksRoute: TasksRoute,
-  TimeRoute: TimeRoute,
+  TasksTaskIdRoute: TasksTaskIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

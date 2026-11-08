@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { formatWhen } from "@/core/utils";
 import { subDays, format, isSameDay } from "date-fns";
 
 export function StreakChart({
@@ -39,13 +40,13 @@ export function StreakChart({
               "h-3 flex-1 rounded-[2px]",
               d.active ? "bg-primary" : "bg-muted",
             )}
-            title={format(d.date, "MMM d")}
+            title={formatWhen(d.date, "MMM d")}
           />
         ))}
       </div>
       <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5">
-        <span>{format(days[0].date, "MMM d")}</span>
-        <span>{format(days[days.length - 1].date, "MMM d")}</span>
+        <span>{formatWhen(days[0].date, "MMM d")}</span>
+        <span>{formatWhen(days[days.length - 1].date, "MMM d")}</span>
       </div>
     </div>
   );

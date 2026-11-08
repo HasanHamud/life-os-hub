@@ -1,3 +1,5 @@
+import type { ThemeId } from "./theme";
+
 export type TaskStatus = "backlog" | "todo" | "in_progress" | "blocked" | "done";
 export type Priority = "low" | "med" | "high" | "urgent";
 export type BlockType = "work" | "freelance" | "personal" | "studies" | "university";
@@ -24,26 +26,13 @@ export interface Task {
   tagIds: string[];
   parentTaskId?: string;
   dependsOnIds?: string[];
+  assigneeId?: string;
   recurrence?: Recurrence;
   recurrenceParentId?: string; // if generated from a recurring template
   archived?: boolean;
   completedAt?: number;
   createdAt: number;
   updatedAt: number;
-}
-
-export interface TimeBlock {
-  id: string;
-  taskId?: string;
-  title: string;
-  startTime: number;
-  endTime: number;
-  type: BlockType;
-  isCompleted: boolean;
-  notes?: string;
-  recurrence?: Recurrence;
-  recurrenceParentId?: string;
-  createdAt: number;
 }
 
 export const PROJECT_CATEGORY_PRESETS = ["Work", "Freelance", "Personal", "Studies", "University"] as const;
@@ -54,6 +43,7 @@ export interface Project {
   description?: string;
   color?: string;
   category?: string;
+  managerId?: string;
   archived?: boolean;
   createdAt: number;
 }
@@ -90,10 +80,15 @@ export interface LogEntry {
   id: string;
   date: string; // YYYY-MM-DD
   content: string;
+  relatedTaskIds: string[];
+  /** Older rows stored a single task here. Read fallback only. */
   relatedTaskId?: string;
   mood?: 1 | 2 | 3 | 4 | 5;
   energy?: 1 | 2 | 3 | 4 | 5;
   createdAt: number;
+  adminNote?: string;
+  adminNoteAt?: number;
+  adminNoteBy?: string;
 }
 
 export interface Snapshot {
@@ -185,8 +180,12 @@ export interface WeekTemplate {
   createdAt: number;
 }
 
+export type LocaleId = "en" | "ar";
+
 export interface Settings {
   id: "global";
+  locale: LocaleId;
+  theme: ThemeId;
   pomodoroFocus: number; // minutes
   pomodoroBreak: number;
   pomodoroLongBreak: number;
@@ -197,4 +196,5 @@ export interface Settings {
   // Multi-currency
   baseCurrency: Currency; // currency totals are reported in
   usdToLbpRate: number; // how many LBP for 1 USD (e.g. 90000)
+  financeEnabled: boolean;
 }

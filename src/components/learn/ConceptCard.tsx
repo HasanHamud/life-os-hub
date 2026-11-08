@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Trash2, Pencil, Brain } from "lucide-react";
 import { ClarityStars } from "./ClarityStars";
 import type { Concept } from "@/core/learn-types";
@@ -13,6 +14,7 @@ export function ConceptCard({
   onDelete: () => void;
   onClarityChange: (v: 1 | 2 | 3 | 4 | 5) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-xl border bg-card p-4 group hover:border-primary/30 transition-colors">
       <div className="flex items-start justify-between gap-2 mb-2">
@@ -25,7 +27,7 @@ export function ConceptCard({
             <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
               <span>{concept.subject}</span>
               {concept.topic && <span>· {concept.topic}</span>}
-              <span>· Phase {concept.phase}</span>
+              <span>· {t("learn.phases.phase", { n: concept.phase })}</span>
             </div>
           </div>
         </div>
@@ -40,7 +42,7 @@ export function ConceptCard({
       </div>
       <ClarityStars value={concept.clarityRating} onChange={onClarityChange} />
       {concept.canExplainWithoutNotes && (
-        <div className="text-[10px] text-success mt-1">Can explain without notes</div>
+        <div className="text-[10px] text-success mt-1">{t("more.canExplain")}</div>
       )}
     </div>
   );

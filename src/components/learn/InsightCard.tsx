@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Trash2, Pencil, Lightbulb } from "lucide-react";
 import type { LearningInsight } from "@/core/learn-types";
 
@@ -10,6 +11,7 @@ export function InsightCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-xl border bg-card p-4 group hover:border-primary/30 transition-colors">
       <div className="flex items-start justify-between gap-3 mb-2">
@@ -51,7 +53,7 @@ export function InsightCard({
       )}
       {insight.mistakes && (
         <div className="text-xs text-destructive/80 bg-destructive/5 rounded-md px-2 py-1 mt-1">
-          Mistake: {insight.mistakes}
+          {t("learn.mistake", { text: insight.mistakes })}
         </div>
       )}
     </div>

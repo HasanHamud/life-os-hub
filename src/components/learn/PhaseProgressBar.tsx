@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 export function PhaseProgressBar({
@@ -5,12 +6,13 @@ export function PhaseProgressBar({
 }: {
   phases: { phase: number; pct: number; label: string }[];
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-3">
       {phases.map(({ phase, pct, label }) => (
         <div key={phase}>
           <div className="flex items-center justify-between text-xs mb-1">
-            <span className="font-medium">Phase {phase} — {label}</span>
+            <span className="font-medium">{t("learn.phases.phase", { n: phase })} — {label}</span>
             <span className="tabular-nums text-muted-foreground">{pct}%</span>
           </div>
           <div className="h-2 rounded-full bg-muted overflow-hidden">

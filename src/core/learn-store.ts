@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { format } from "date-fns";
 import { getAll, putOne, delOne, uid } from "./db";
+import { viewUserId } from "./session";
 import type { Concept, LearningInsight, Problem, LearningSession, RotationEntry } from "./learn-types";
 
 interface LearnState {
@@ -45,6 +46,8 @@ interface LearnState {
   recentInsights: (days: number) => LearningInsight[];
 }
 
+let learnEpoch = 0;
+
 export const useLearnStore = create<LearnState>((set, get) => ({
   concepts: [],
   insights: [],
@@ -53,6 +56,8 @@ export const useLearnStore = create<LearnState>((set, get) => ({
   rotation: [],
 
   load: async () => {
+    const epoch = ++learnEpoch;
+    const view = viewUserId();
     const [concepts, insights, problems, sessions, rotation] = await Promise.all([
       getAll<Concept>("concepts"),
       getAll<LearningInsight>("insights"),
@@ -60,6 +65,7 @@ export const useLearnStore = create<LearnState>((set, get) => ({
       getAll<LearningSession>("learningSessions"),
       getAll<RotationEntry>("rotationEntries"),
     ]);
+    if (epoch !== learnEpoch || viewUserId() !== view) return;
     set({ concepts, insights, problems, sessions, rotation });
   },
 

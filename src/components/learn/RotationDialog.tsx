@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { Trash2, Plus } from "lucide-react";
 import type { RotationEntry } from "@/core/learn-types";
 
-const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DAY_KEYS = ["week.sun", "week.mon", "week.tue", "week.wed", "week.thu", "week.fri", "week.sat"] as const;
 
 export function RotationDialog({
   open,
@@ -23,6 +23,7 @@ export function RotationDialog({
   onUpsert: (entry: RotationEntry) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [entries, setEntries] = useState<RotationEntry[]>([]);
 
   useEffect(() => {
@@ -63,7 +64,7 @@ export function RotationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Weekly Rotation</DialogTitle>
+          <DialogTitle>{t("more.editRotation")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           {entries.length === 0 && (
@@ -79,8 +80,8 @@ export function RotationDialog({
                 !entry.enabled && "opacity-50",
               )}
             >
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground w-14 text-right">
-                {DAY_NAMES[entry.dayOfWeek].slice(0, 3)}
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground w-14 text-right truncate" title={t(DAY_KEYS[entry.dayOfWeek])}>
+                {t(DAY_KEYS[entry.dayOfWeek])}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex items-center gap-2">
@@ -91,14 +92,14 @@ export function RotationDialog({
                   />
                   <Input
                     className="h-8 text-sm"
-                    placeholder="Subject"
+                    placeholder={t("learn.subject")}
                     value={entry.subject}
                     onChange={(e) => update(idx, { subject: e.target.value })}
                   />
                 </div>
                 <Input
                   className="h-8 text-sm"
-                  placeholder="Topic"
+                  placeholder={t("learn.topic")}
                   value={entry.topic}
                   onChange={(e) => update(idx, { topic: e.target.value })}
                 />
@@ -122,13 +123,13 @@ export function RotationDialog({
           ))}
           {entries.length < 7 && (
             <Button variant="outline" size="sm" onClick={addNew} className="w-full">
-              <Plus className="h-4 w-4 mr-1" /> Add day
+              <Plus className="h-4 w-4 me-1" /> {t("learn.addRow")}
             </Button>
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={saveAll}>Save</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
+          <Button onClick={saveAll}>{t("learn.save")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

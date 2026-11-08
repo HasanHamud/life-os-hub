@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useStore } from "@/core/store";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
@@ -9,26 +9,30 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { projectProgress, fmt } from "@/core/utils";
 import { TaskRow } from "@/components/tasks/TaskCard";
-import { TaskDialog } from "@/components/tasks/TaskDialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { personName, usePeople } from "@/core/people";
 import { Plus, FolderKanban, Trash2 } from "lucide-react";
 import { PROJECT_CATEGORY_PRESETS } from "@/core/types";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import i18n from "@/core/i18n";
 
 export const Route = createFileRoute("/projects")({
   head: () => ({ meta: [
-    { title: "Projects — Life OS" },
+    { title: i18n.t("meta.projects") },
     { name: "description", content: "Group tasks under projects, track progress and feature breakdown." },
   ]}),
   component: ProjectsPage,
 });
 
 function ProjectsPage() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const people = usePeople();
   const { projects, tasks, upsertProject, deleteProject } = useStore();
   const [editing, setEditing] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [openProject, setOpenProject] = useState<string | null>(null);
-  const [createTaskFor, setCreateTaskFor] = useState<string | null>(null);
-  const [editTaskId, setEditTaskId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>("");
 
@@ -46,14 +50,14 @@ function ProjectsPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="Projects"
+        title={t("projects.title")}
         description="Initiatives that group related tasks. Each shows progress and a task tree."
         actions={
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => setShowArchived(!showArchived)}>
-              {showArchived ? "Active" : "Archived"}
+              {showArchived ? "Active" : t("common.archived")}
             </Button>
-            <Button onClick={() => setCreating(true)}><Plus className="h-4 w-4 mr-1" /> New Project</Button>
+            <Button onClick={() => setCreating(true)}><Plus className="h-4 w-4 me-1" /> {t("projects.new")}</Button>
           </div>
         }
       />
@@ -62,7 +66,7 @@ function ProjectsPage() {
         <button onClick={() => setCategoryFilter("")}
           className={cn("text-[11px] px-2.5 py-1 rounded-full border transition-colors",
             categoryFilter === "" ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground")}>
-          All
+          {t("common.all")}
         </button>
         {allCategories.map((c) => {
           const on = categoryFilter === c;
@@ -90,12 +94,21 @@ function ProjectsPage() {
                   <FolderKanban className="h-5 w-5" />
                 </div>
                 <button onClick={(e) => { e.stopPropagation(); setEditing(p.id); }}
-                  className="text-xs text-muted-foreground hover:text-foreground">Edit</button>
+                  className="text-xs text-muted-foreground hover:text-foreground">{t("projects.edit")}</button>
               </div>
               <div className="text-base font-semibold mb-1">{p.name}</div>
-              {p.category && (
-                <div className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded border border-border text-muted-foreground mb-2">
-                  {p.category}
+              {(p.category || p.managerId) && (
+                <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                  {p.category && (
+                    <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded border border-border text-muted-foreground">
+                      {p.category}
+                    </span>
+                  )}
+                  {p.managerId && (
+                    <span className="text-[10px] text-muted-foreground">
+                      {t("tasks.manager", { name: personName(people, p.managerId) || t("common.unknown") })}
+                    </span>
+                  )}
                 </div>
               )}
               {p.description && <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{p.description}</p>}
@@ -106,7 +119,7 @@ function ProjectsPage() {
               <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                 <div className="h-full transition-all" style={{ width: `${pct}%`, backgroundColor: p.color }} />
               </div>
-              <div className="text-[10px] text-muted-foreground mt-3">Created {fmt.date(p.createdAt)}</div>
+              <div className="text-[10px] text-muted-foreground mt-3">{t("projects.created", { date: fmt.date(p.createdAt) })}</div>
             </div>
           );
         })}
@@ -141,18 +154,18 @@ function ProjectsPage() {
               {open.description && <p className="text-sm text-muted-foreground">{open.description}</p>}
               <div className="flex items-center justify-between text-xs mb-2">
                 <span className="text-muted-foreground">{openTasks.filter((t) => t.status === "done").length} of {openTasks.length} complete</span>
-                <Button size="sm" variant="outline" onClick={() => setCreateTaskFor(open.id)}>+ Task</Button>
+                <Button size="sm" variant="outline" onClick={() => navigate({ to: "/tasks/$taskId", params: { taskId: "new" }, search: { projectId: open.id } })}>+ Task</Button>
               </div>
               <div className="h-2 rounded-full bg-muted overflow-hidden mb-4">
                 <div className="h-full" style={{ width: `${projectProgress(open.id, tasks)}%`, backgroundColor: open.color }} />
               </div>
               <div className="space-y-1">
-                {openTasks.length === 0 && <div className="text-center text-xs text-muted-foreground py-6">No tasks yet.</div>}
+                {openTasks.length === 0 && <div className="text-center text-xs text-muted-foreground py-6">{t("projects.noTasks")}</div>}
                 {openTasks.map((t) => (
                   <div key={t.id}>
-                    <TaskRow task={t} onClick={() => setEditTaskId(t.id)} />
+                    <TaskRow task={t} onClick={() => navigate({ to: "/tasks/$taskId", params: { taskId: t.id } })} />
                     {tasks.filter((c) => c.parentTaskId === t.id).map((c) => (
-                      <div key={c.id} className="ml-7"><TaskRow task={c} onClick={() => setEditTaskId(c.id)} /></div>
+                      <div key={c.id} className="ml-7"><TaskRow task={c} onClick={() => navigate({ to: "/tasks/$taskId", params: { taskId: c.id } })} /></div>
                     ))}
                   </div>
                 ))}
@@ -162,11 +175,6 @@ function ProjectsPage() {
         </DialogContent>
       </Dialog>
 
-      {createTaskFor && (
-        <TaskDialog open={!!createTaskFor} onOpenChange={(v) => !v && setCreateTaskFor(null)}
-          taskId={null} />
-      )}
-      <TaskDialog open={!!editTaskId} onOpenChange={(v) => !v && setEditTaskId(null)} taskId={editTaskId} />
     </PageContainer>
   );
 }
@@ -175,15 +183,18 @@ function ProjectDialog({
   open, onOpenChange, projectId, onSubmit, onDelete,
 }: {
   open: boolean; onOpenChange: (v: boolean) => void; projectId: string | null;
-  onSubmit: (d: { name: string; description?: string; color?: string; category?: string }) => Promise<void>;
+  onSubmit: (d: { name: string; description?: string; color?: string; category?: string; managerId?: string | null }) => Promise<void>;
   onDelete?: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const project = useStore((s) => projectId ? s.projects.find((p) => p.id === projectId) : undefined);
+  const people = usePeople();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("#d4a574");
   const [category, setCategory] = useState<string>("");
   const [customCat, setCustomCat] = useState("");
+  const [managerId, setManagerId] = useState("none");
 
   // Re-sync on open change
   useEffect(() => {
@@ -192,11 +203,13 @@ function ProjectDialog({
       setDescription(project?.description ?? "");
       setColor(project?.color ?? "#d4a574");
       setCategory(project?.category ?? "");
+      setManagerId(project?.managerId ?? "none");
     } else {
       setName("");
       setDescription("");
       setColor("#d4a574");
       setCategory("");
+      setManagerId("none");
     }
   }, [open, project]);
 
@@ -205,12 +218,25 @@ function ProjectDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>{projectId ? "Edit Project" : "New Project"}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{projectId ? "Edit Project" : t("projects.new")}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div><Label className="text-xs">Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} autoFocus /></div>
-          <div><Label className="text-xs">Description</Label><Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
+          <div><Label className="text-xs">{t("common.name")}</Label><Input value={name} onChange={(e) => setName(e.target.value)} autoFocus /></div>
+          <div><Label className="text-xs">{t("common.description")}</Label><Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
           <div>
-            <Label className="text-xs">Category</Label>
+            <Label className="text-xs">{t("common.manager")}</Label>
+            <Select value={managerId} onValueChange={setManagerId}>
+              <SelectTrigger><SelectValue placeholder={t("common.none")} /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{t("common.none")}</SelectItem>
+                {managerId !== "none" && !people.some((p) => p.id === managerId) && (
+                  <SelectItem value={managerId}>{t("tasks.unknownUser")}</SelectItem>
+                )}
+                {people.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">{t("common.category")}</Label>
             <div className="flex flex-wrap gap-1.5 mt-1">
               {PROJECT_CATEGORY_PRESETS.map((c) => (
                 <button key={c} type="button" onClick={() => { setCategory(c); setCustomCat(""); }}
@@ -227,16 +253,16 @@ function ProjectDialog({
               <button type="button" onClick={() => { setCategory(""); setCustomCat(""); }}
                 className={cn("text-[11px] px-2.5 py-1 rounded-full border transition-colors",
                   category === "" ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground")}>
-                None
+                {t("common.none")}
               </button>
             </div>
             {!isPreset && (
-              <Input className="mt-2" placeholder="Custom category name"
+              <Input className="mt-2" placeholder={t("projects.customCategory")}
                 value={customCat || category}
                 onChange={(e) => { setCustomCat(e.target.value); setCategory(e.target.value); }} />
             )}
           </div>
-          <div><Label className="text-xs">Color</Label>
+          <div><Label className="text-xs">{t("common.color")}</Label>
             <div className="flex gap-2 mt-1">
               {["#d4a574", "#90b890", "#90b8c8", "#c890b8", "#c8a890", "#a8c888"].map((c) => (
                 <button key={c} type="button" onClick={() => setColor(c)}
@@ -248,7 +274,7 @@ function ProjectDialog({
           </div>
         </div>
         <DialogFooter>
-          {onDelete && <Button variant="ghost" className="mr-auto text-destructive" onClick={onDelete}><Trash2 className="h-4 w-4 mr-1" />Delete</Button>}
+          {onDelete && <Button variant="ghost" className="mr-auto text-destructive" onClick={onDelete}><Trash2 className="h-4 w-4 me-1" />{t("projects.delete")}</Button>}
           {project && (
             <Button
               variant="outline"
@@ -257,12 +283,12 @@ function ProjectDialog({
                 onOpenChange(false);
               }}
             >
-              {project.archived ? "Unarchive" : "Archive"}
+              {project.archived ? t("common.unarchive") : t("common.archive")}
             </Button>
           )}
-          <Button variant="outline" onClick={() => { onOpenChange(false); setName(""); }}>Cancel</Button>
-          <Button onClick={async () => { await onSubmit({ name, description, color, category: category || undefined }); setName(""); setCategory(""); setCustomCat(""); }}>
-            {projectId ? "Save" : "Create"}
+          <Button variant="outline" onClick={() => { onOpenChange(false); setName(""); }}>{t("common.cancel")}</Button>
+          <Button onClick={async () => { await onSubmit({ name, description, color, category: category || undefined, managerId: managerId === "none" ? null : managerId }); setName(""); setCategory(""); setCustomCat(""); setManagerId("none"); }}>
+            {projectId ? t("common.save") : t("common.create")}
           </Button>
         </DialogFooter>
       </DialogContent>

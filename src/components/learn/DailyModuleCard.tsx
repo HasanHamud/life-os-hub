@@ -1,8 +1,9 @@
 import { useLearnStore } from "@/core/learn-store";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, SkipForward, Settings2 } from "lucide-react";
+import { GraduationCap, Settings2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
-const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DAY_KEYS = ["week.sun", "week.mon", "week.tue", "week.wed", "week.thu", "week.fri", "week.sat"] as const;
 
 export function DailyModuleCard({
   onStartSession,
@@ -11,7 +12,8 @@ export function DailyModuleCard({
   onStartSession: () => void;
   onConfigure: () => void;
 }) {
-  const { getDayEntry, upsertRotationEntry } = useLearnStore();
+  const { t } = useTranslation();
+  const { getDayEntry } = useLearnStore();
   const today = new Date().getDay();
   const entry = getDayEntry(today);
 
@@ -25,15 +27,15 @@ export function DailyModuleCard({
             </div>
             <div>
               <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                {DAY_NAMES[today]}
+                {t(DAY_KEYS[today])}
               </div>
-              <div className="text-lg font-semibold text-muted-foreground">No session scheduled</div>
-              <div className="text-sm text-muted-foreground">Add or enable a rotation entry</div>
+              <div className="text-lg font-semibold text-muted-foreground">{t("learn.noSession")}</div>
+              <div className="text-sm text-muted-foreground">{t("learn.addRotation")}</div>
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={onConfigure}>
-            <Settings2 className="h-4 w-4 mr-1" />
-            Configure
+            <Settings2 className="h-4 w-4 me-1" />
+            {t("learn.configure")}
           </Button>
         </div>
       </div>
@@ -49,7 +51,7 @@ export function DailyModuleCard({
           </div>
           <div>
             <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-              {DAY_NAMES[today]}
+              {t(DAY_KEYS[today])}
             </div>
             <div className="text-lg font-semibold">{entry.subject}</div>
             <div className="text-sm text-muted-foreground">{entry.topic}</div>
@@ -57,12 +59,12 @@ export function DailyModuleCard({
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={onConfigure}>
-            <Settings2 className="h-4 w-4 mr-1" />
-            Edit
+            <Settings2 className="h-4 w-4 me-1" />
+            {t("common.edit")}
           </Button>
           <Button onClick={onStartSession} size="sm">
-            <GraduationCap className="h-4 w-4 mr-1" />
-            Start session
+            <GraduationCap className="h-4 w-4 me-1" />
+            {t("learn.startSession")}
           </Button>
         </div>
       </div>

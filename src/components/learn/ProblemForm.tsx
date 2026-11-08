@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,7 @@ export function ProblemForm({
   onSubmit: (data: Partial<Problem> & { title: string }) => Promise<void>;
   onDelete?: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
   const [source, setSource] = useState("");
@@ -78,15 +80,15 @@ export function ProblemForm({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{problem ? "Edit Problem" : "New Problem"}</DialogTitle>
+          <DialogTitle>{problem ? "Edit Problem" : t("learn.newProblem")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <Label className="text-xs">Title</Label>
-            <Input placeholder="e.g. Two Sum II" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
+            <Label className="text-xs">{t("common.title")}</Label>
+            <Input placeholder={t("learn.form.problem")} value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
           </div>
           <div>
-            <Label className="text-xs">Subject</Label>
+            <Label className="text-xs">{t("learn.subject")}</Label>
             <div className="flex gap-2">
               <Input
                 placeholder="e.g. CP, Math"
@@ -101,14 +103,14 @@ export function ProblemForm({
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label className="text-xs">Source</Label>
-              <Input placeholder="LeetCode 167" value={source} onChange={(e) => setSource(e.target.value)} />
+              <Label className="text-xs">{t("more.source")}</Label>
+              <Input placeholder={t("learn.form.source")} value={source} onChange={(e) => setSource(e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs">Pattern Class</Label>
+              <Label className="text-xs">{t("more.patternClass")}</Label>
               <div className="flex gap-2">
                 <Input
-                  placeholder="two-pointer"
+                  placeholder={t("learn.form.pattern")}
                   value={patternClass}
                   onChange={(e) => setPatternClass(e.target.value)}
                   list="patterns-list"
@@ -121,7 +123,7 @@ export function ProblemForm({
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label className="text-xs">Difficulty</Label>
+              <Label className="text-xs">{t("more.difficulty")}</Label>
               <Select value={difficulty} onValueChange={setDifficulty}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -130,28 +132,28 @@ export function ProblemForm({
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Time to solve (min)</Label>
-              <Input type="number" min={0} placeholder="e.g. 15" value={timeToSolve} onChange={(e) => setTimeToSolve(e.target.value)} />
+              <Label className="text-xs">{t("more.timeToSolve")}</Label>
+              <Input type="number" min={0} placeholder={t("learn.form.minutes")} value={timeToSolve} onChange={(e) => setTimeToSolve(e.target.value)} />
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Checkbox id="prob-completed" checked={completed} onCheckedChange={(v) => setCompleted(!!v)} />
-            <label htmlFor="prob-completed" className="text-xs cursor-pointer">Completed</label>
+            <label htmlFor="prob-completed" className="text-xs cursor-pointer">{t("more.completed")}</label>
           </div>
           <div>
-            <Label className="text-xs">Notes</Label>
+            <Label className="text-xs">{t("notes.title")}</Label>
             <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
         </div>
         <DialogFooter>
           {onDelete && (
             <Button variant="ghost" className="mr-auto text-destructive" onClick={onDelete}>
-              Delete
+              {t("common.delete")}
             </Button>
           )}
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
           <Button onClick={handleSubmit} disabled={!title.trim()}>
-            {problem ? "Save" : "Create"}
+            {problem ? t("common.save") : t("common.create")}
           </Button>
         </DialogFooter>
       </DialogContent>

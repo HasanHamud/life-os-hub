@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +16,12 @@ import { categoryPath, convertCurrency, fmtMoney } from "@/core/finance-utils";
 const TYPES: TxType[] = ["expense", "income", "transfer"];
 const FREQS: FinanceRecurrenceFreq[] = ["none", "daily", "weekly", "monthly", "yearly"];
 
+const TYPE_LABEL: Record<TxType, "finance.expense" | "finance.income" | "finance.transfer"> = {
+  expense: "finance.expense",
+  income: "finance.income",
+  transfer: "finance.transfer",
+};
+
 export function TransactionDialog({
   open, onOpenChange, transactionId, defaultType, defaultAccountId,
 }: {
@@ -24,8 +31,9 @@ export function TransactionDialog({
   defaultType?: TxType;
   defaultAccountId?: string;
 }) {
+  const { t } = useTranslation();
   const { transactions, accounts, categories, tasks, goals, settings, upsertTransaction, deleteTransaction } = useStore();
-  const existing = transactionId ? transactions.find((t) => t.id === transactionId) : undefined;
+  const existing = transactionId ? transactions.find((tx) => tx.id === transactionId) : undefined;
 
   const [type, setType] = useState<TxType>("expense");
   const [amount, setAmount] = useState<string>("");
@@ -107,19 +115,19 @@ export function TransactionDialog({
 
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-2">
-            {TYPES.map((t) => (
+            {TYPES.map((txType) => (
               <button
-                key={t}
+                key={txType}
                 type="button"
-                onClick={() => setType(t)}
-                className={`px-3 py-2 rounded-md border text-xs font-medium capitalize transition-colors ${
-                  type === t
-                    ? t === "expense" ? "border-destructive/50 bg-destructive/10 text-destructive"
-                    : t === "income" ? "border-success/50 bg-success/10 text-success"
+                onClick={() => setType(txType)}
+                className={`px-3 py-2 rounded-md border text-xs font-medium transition-colors ${
+                  type === txType
+                    ? txType === "expense" ? "border-destructive/50 bg-destructive/10 text-destructive"
+                    : txType === "income" ? "border-success/50 bg-success/10 text-success"
                     : "border-info/50 bg-info/10 text-info"
                     : "border-border text-muted-foreground hover:text-foreground"
                 }`}
-              >{t}</button>
+              >{t(TYPE_LABEL[txType])}</button>
             ))}
           </div>
 
@@ -137,14 +145,14 @@ export function TransactionDialog({
               )}
             </div>
             <div>
-              <Label className="text-xs">Date</Label>
+              <Label className="text-xs">{t("finance.date")}</Label>
               <Input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
 
             <div>
-              <Label className="text-xs">{type === "transfer" ? "From account" : "Account"}</Label>
+              <Label className="text-xs">{type === "transfer" ? "From account" : t("common.account")}</Label>
               <Select value={accountId} onValueChange={setAccountId}>
-                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("common.select")} /></SelectTrigger>
                 <SelectContent>
                   {accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                 </SelectContent>
@@ -153,9 +161,9 @@ export function TransactionDialog({
 
             {type === "transfer" ? (
               <div>
-                <Label className="text-xs">To account</Label>
+                <Label className="text-xs">{t("finance.toAccount")}</Label>
                 <Select value={toAccountId} onValueChange={setToAccountId}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t("common.select")} /></SelectTrigger>
                   <SelectContent>
                     {accounts.filter((a) => a.id !== accountId).map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                   </SelectContent>
@@ -163,10 +171,10 @@ export function TransactionDialog({
               </div>
             ) : (
               <div>
-                <Label className="text-xs">Category</Label>
+                <Label className="text-xs">{t("finance.category")}</Label>
                 <Select value={categoryId} onValueChange={setCategoryId}>
-                  <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
-                  <SelectContent className="max-h-72">
+                  <SelectTrigger><SelectValue placeholder={t("common.none")} /></SelectTrigger>
+                  <SelectContent>
                     <SelectItem value="none">— None —</SelectItem>
                     {filteredCats.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
@@ -183,25 +191,25 @@ export function TransactionDialog({
           </div>
 
           <div>
-            <Label className="text-xs">Note</Label>
+            <Label className="text-xs">{t("finance.note")}</Label>
             <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Optional" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Linked task</Label>
+              <Label className="text-xs">{t("finance.linkedTask")}</Label>
               <Select value={relatedTaskId} onValueChange={setRelatedTaskId}>
-                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
-                <SelectContent className="max-h-72">
+                <SelectTrigger><SelectValue placeholder={t("common.none")} /></SelectTrigger>
+                <SelectContent>
                   <SelectItem value="none">— None —</SelectItem>
-                  {tasks.slice(0, 100).map((t) => <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>)}
+                  {tasks.slice(0, 100).map((task) => <SelectItem key={task.id} value={task.id}>{task.title}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Linked goal</Label>
+              <Label className="text-xs">{t("finance.linkedGoal")}</Label>
               <Select value={relatedGoalId} onValueChange={setRelatedGoalId}>
-                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("common.none")} /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">— None —</SelectItem>
                   {goals.map((g) => <SelectItem key={g.id} value={g.id}>{g.title}</SelectItem>)}
@@ -211,7 +219,7 @@ export function TransactionDialog({
           </div>
 
           <div>
-            <Label className="text-xs">Recurrence</Label>
+            <Label className="text-xs">{t("finance.recurrence")}</Label>
             <Select value={recFreq} onValueChange={(v) => setRecFreq(v as FinanceRecurrenceFreq)}>
               <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -224,11 +232,11 @@ export function TransactionDialog({
         <DialogFooter className="mt-2">
           {existing && (
             <Button variant="ghost" onClick={remove} className="mr-auto text-destructive hover:text-destructive">
-              <Trash2 className="h-4 w-4 mr-1" /> Delete
+              <Trash2 className="h-4 w-4 me-1" /> {t("common.delete")}
             </Button>
           )}
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={submit}>{existing ? "Save" : "Add"}</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
+          <Button onClick={submit}>{existing ? t("common.save") : t("finance.add")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

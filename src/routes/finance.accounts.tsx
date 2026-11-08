@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "@/core/store";
+import i18n from "@/core/i18n";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,13 +15,14 @@ import { toast } from "sonner";
 import type { Account, AccountType } from "@/core/finance-types";
 
 export const Route = createFileRoute("/finance/accounts")({
-  head: () => ({ meta: [{ title: "Accounts — Finance" }] }),
+  head: () => ({ meta: [{ title: i18n.t("meta.accounts") }] }),
   component: AccountsPage,
 });
 
 const TYPES: AccountType[] = ["cash", "bank", "savings", "credit"];
 
 function AccountsPage() {
+  const { t } = useTranslation();
   const { accounts, transactions, settings, upsertAccount, deleteAccount } = useStore();
   const [editing, setEditing] = useState<Account | null>(null);
   const [open, setOpen] = useState(false);
@@ -37,9 +40,9 @@ function AccountsPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="Accounts"
+        title={t("finance.accounts")}
         description="Cash, bank, savings, credit. Balances update from transactions."
-        actions={<Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}><Plus className="h-4 w-4 mr-1" /> Add account</Button>}
+        actions={<Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}><Plus className="h-4 w-4 me-1" /> {t("finance.addAccount")}</Button>}
       />
 
       <div className="rounded-xl border bg-card p-4 mb-4">
@@ -53,13 +56,13 @@ function AccountsPage() {
           {Object.entries(totalByCurrency).map(([cur, val]) => (
             <div key={cur} className="tabular-nums">{cur}: {fmtMoney(val, cur)}</div>
           ))}
-          {accounts.length === 0 && <div>No accounts yet.</div>}
+          {accounts.length === 0 && <div>{t("more.noAccounts")}</div>}
         </div>
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {accounts.map((a) => {
-          const txCount = transactions.filter((t) => t.accountId === a.id || t.toAccountId === a.id).length;
+          const txCount = transactions.filter((tx) => tx.accountId === a.id || tx.toAccountId === a.id).length;
           return (
             <div key={a.id} className="rounded-xl border bg-card p-4 group">
               <div className="flex items-start justify-between gap-2 mb-3">
@@ -75,9 +78,9 @@ function AccountsPage() {
                 <div className="flex opacity-0 group-hover:opacity-100 transition">
                   <Button size="icon" variant="ghost" onClick={() => { setEditing(a); setOpen(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
                   <Button size="icon" variant="ghost" onClick={async () => {
-                    if (confirm(`Delete "${a.name}"? Transactions will remain.`)) {
+                    if (confirm(t("finance.deleteAccount", { name: a.name }))) {
                       await deleteAccount(a.id);
-                      toast.success("Account deleted");
+                      toast.success(t("finance.accountDeleted"));
                     }
                   }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                 </div>
@@ -108,6 +111,7 @@ function AccountDialog({
   onSaved: () => void;
   onUpsert: (a: Partial<Account> & { name?: string }) => Promise<Account>;
 }) {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [type, setType] = useState<AccountType>("cash");
   const [initialBalance, setInitialBalance] = useState("0");
@@ -130,7 +134,7 @@ function AccountDialog({
   const reset = () => { setName(""); setType("cash"); setInitialBalance("0"); setCurrency("USD"); setColor("#d4a574"); };
 
   const submit = async () => {
-    if (!name.trim()) return toast.error("Name is required");
+    if (!name.trim()) return toast.error(t("errors.nameRequired"));
     const isNew = !account;
     await onUpsert({
       id: account?.id, name: name.trim(), type,
@@ -138,7 +142,7 @@ function AccountDialog({
       currency: currency.trim().toUpperCase() || "USD",
       color,
     });
-    toast.success(isNew ? "Account added" : "Account updated");
+    toast.success(isNew ? t("finance.accountAdded") : t("finance.accountUpdated"));
     reset();
     onSaved();
   };
@@ -149,42 +153,42 @@ function AccountDialog({
         <DialogHeader><DialogTitle>{account ? "Edit account" : "New account"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div>
-            <Label className="text-xs">Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Main bank" autoFocus />
+            <Label className="text-xs">{t("common.name")}</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("finance.bankPh")} autoFocus />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Type</Label>
+              <Label className="text-xs">{t("common.type")}</Label>
               <Select value={type} onValueChange={(v) => setType(v as AccountType)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {TYPES.map((t) => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}
+                  {TYPES.map((accountType) => <SelectItem key={accountType} value={accountType} className="capitalize">{accountType}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Currency</Label>
+              <Label className="text-xs">{t("more.currency")}</Label>
               <Select value={currency} onValueChange={(v) => setCurrency(v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="USD">USD — US Dollar</SelectItem>
-                  <SelectItem value="LBP">LBP — Lebanese Lira</SelectItem>
+                  <SelectItem value="USD">{t("more.usd")}</SelectItem>
+                  <SelectItem value="LBP">{t("more.lbp")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Opening balance</Label>
+              <Label className="text-xs">{t("more.opening")}</Label>
               <Input type="number" step="0.01" value={initialBalance} onChange={(e) => setInitialBalance(e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs">Color</Label>
+              <Label className="text-xs">{t("common.color")}</Label>
               <Input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-9 p-1" />
             </div>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => { reset(); onOpenChange(false); }}>Cancel</Button>
-          <Button onClick={submit}>{account ? "Save" : "Add"}</Button>
+          <Button variant="outline" onClick={() => { reset(); onOpenChange(false); }}>{t("common.cancel")}</Button>
+          <Button onClick={submit}>{account ? t("common.save") : t("finance.add")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

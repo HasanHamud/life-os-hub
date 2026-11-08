@@ -1,14 +1,16 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Settings2 } from "lucide-react";
 import { useLearnStore } from "@/core/learn-store";
 
-const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_KEYS = ["week.sun", "week.mon", "week.tue", "week.wed", "week.thu", "week.fri", "week.sat"] as const;
 
 export function RotationWidget({
   onConfigure,
 }: {
   onConfigure: () => void;
 }) {
+  const { t } = useTranslation();
   const rotation = useLearnStore((s) => s.rotation);
   const today = new Date().getDay();
   const sorted = [...rotation].sort((a, b) => a.dayOfWeek - b.dayOfWeek);
@@ -35,7 +37,7 @@ export function RotationWidget({
               !entry.enabled && "opacity-40",
             )}
           >
-            <div className="text-[10px] font-medium text-muted-foreground">{DAY_NAMES[entry.dayOfWeek]}</div>
+            <div className="text-[10px] font-medium text-muted-foreground truncate" title={t(DAY_KEYS[entry.dayOfWeek])}>{t(DAY_KEYS[entry.dayOfWeek])}</div>
             <div className="text-xs mt-0.5">{entry.icon}</div>
             <div className={cn(
               "text-[9px] font-semibold mt-0.5 truncate",

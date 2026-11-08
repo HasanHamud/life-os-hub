@@ -1,71 +1,74 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { useSyncExternalStore } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { authState, subscribeAuth, viewUserId } from "@/core/session";
+import { useStore } from "@/core/store";
 
-const NAV = [
-  { to: "/", label: "Dashboard" },
-  { to: "/tasks", label: "Tasks" },
-  { to: "/time", label: "Time" },
-  { to: "/calendar", label: "Calendar" },
-  { to: "/projects", label: "Projects" },
-  { to: "/goals", label: "Goals" },
-  { to: "/notes", label: "Notes" },
-  { to: "/pomodoro", label: "Pomodoro" },
-  { to: "/stopwatch", label: "Stopwatch" },
-  { to: "/focus", label: "Focus" },
-  { to: "/journal", label: "Journal" },
-  { to: "/analytics", label: "Analytics" },
-  { to: "/learn", label: "Learn" },
-  { to: "/learn/insights", label: "Insights" },
-  { to: "/learn/concepts", label: "Concepts" },
-  { to: "/learn/problems", label: "Problems" },
-  { to: "/learn/progress", label: "Progress" },
-  { to: "/finance", label: "Finance" },
-  { to: "/finance/transactions", label: "Tx" },
-  { to: "/finance/accounts", label: "Accounts" },
-  { to: "/finance/categories", label: "Cats" },
-  { to: "/finance/budgets", label: "Budgets" },
-  { to: "/finance/savings", label: "Savings" },
-  { to: "/finance/analytics", label: "Analytics" },
-  { to: "/settings", label: "Settings" },
+const NAV: { to: string; labelKey: string; activePaths?: string[] }[] = [
+  { to: "/", labelKey: "nav.dashboard" },
+  { to: "/tasks", labelKey: "nav.tasks" },
+  { to: "/calendar", labelKey: "nav.calendar" },
+  { to: "/projects", labelKey: "nav.projects" },
+  { to: "/goals", labelKey: "nav.goals" },
+  { to: "/notes", labelKey: "nav.others", activePaths: ["/notes", "/pomodoro", "/stopwatch", "/focus"] },
+  { to: "/journal", labelKey: "nav.journal" },
+  { to: "/analytics", labelKey: "nav.analytics" },
+  { to: "/learn", labelKey: "nav.learn" },
+  { to: "/settings", labelKey: "nav.settings" },
+];
+
+const FINANCE_NAV = [
+  { to: "/finance", labelKey: "nav.finance" },
+  { to: "/finance/transactions", labelKey: "nav.tx" },
+  { to: "/finance/accounts", labelKey: "nav.accounts" },
+  { to: "/finance/categories", labelKey: "nav.cats" },
+  { to: "/finance/budgets", labelKey: "nav.budgets" },
+  { to: "/finance/savings", labelKey: "nav.savings" },
+  { to: "/finance/analytics", labelKey: "nav.analytics" },
 ] as const;
 
-export function MobileNav() {
-  const [open, setOpen] = useState(false);
+export function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation();
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const user = useSyncExternalStore(subscribeAuth, () => authState().user);
+  const financeEnabled = useStore((s) => s.settings.financeEnabled);
+  const viewingOther = useSyncExternalStore(subscribeAuth, () => !!viewUserId());
+  const journalForRole = (item: { to: string; labelKey: string; activePaths?: string[] }) => (
+    user?.role === "admin" && item.to === "/journal"
+      ? { to: "/admin/journals", labelKey: "nav.journals" }
+      : item
+  );
+  const items = [
+    ...NAV.filter((item) => item.to !== "/settings").map(journalForRole),
+    ...(financeEnabled && !viewingOther ? FINANCE_NAV : []),
+    ...NAV.filter((item) => item.to === "/settings").map(journalForRole),
+    { to: "/profile", labelKey: "nav.profile" },
+    ...(user?.role === "admin" ? [{ to: "/admin", labelKey: "nav.admin" }] : []),
+  ];
+
+  if (!open) return null;
 
   return (
-    <div className="md:hidden border-b bg-sidebar">
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-md bg-gradient-to-br from-primary to-warning grid place-items-center text-primary-foreground text-xs font-bold">L</div>
-          <span className="text-sm font-semibold">Life OS</span>
-        </div>
-        <button onClick={() => setOpen(!open)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-sidebar-accent">
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
-      </div>
-      {open && (
-        <nav className="grid grid-cols-3 gap-1 p-2 border-t max-h-[70vh] overflow-y-auto">
-          {NAV.map(({ to, label }) => {
-            const active = to === "/" ? path === "/" : path.startsWith(to);
-            return (
-              <Link
-                key={to}
-                to={to}
-                onClick={() => setOpen(false)}
-                className={cn(
-                  "px-3 py-2 rounded text-xs text-center",
-                  active ? "bg-primary text-primary-foreground" : "bg-sidebar-accent text-sidebar-foreground"
-                )}
-              >
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
-      )}
-    </div>
+    <nav className="grid max-h-[70vh] grid-cols-3 gap-1 overflow-y-auto border-b bg-sidebar p-2 md:hidden">
+      {items.map(({ to, labelKey, activePaths }) => {
+        const active = activePaths
+          ? activePaths.includes(path)
+          : to === "/" || to === "/admin" ? path === to : path.startsWith(to);
+        return (
+          <Link
+            key={to}
+            to={to}
+            onClick={onClose}
+            className={cn(
+              "rounded px-3 py-2 text-center text-xs",
+              active ? "bg-primary text-primary-foreground" : "bg-sidebar-accent text-sidebar-foreground",
+            )}
+          >
+            {t(labelKey)}
+          </Link>
+        );
+      })}
+    </nav>
   );
 }

@@ -1,4 +1,5 @@
 import { useStore } from "@/core/store";
+import { personName, usePeople } from "@/core/people";
 import type { Task } from "@/core/types";
 import { StatusBadge, PriorityBadge } from "@/components/common/Badges";
 import { fmt, isOverdue } from "@/core/utils";
@@ -14,6 +15,8 @@ export function TaskCard({
   onDragStart?: (e: React.DragEvent) => void;
 }) {
   const { tags, projects, tasks } = useStore();
+  const people = usePeople();
+  const assignee = personName(people, task.assigneeId);
   const taskTags = tags.filter((t) => task.tagIds.includes(t.id));
   const project = projects.find((p) => p.id === task.projectId);
   const subtaskCount = tasks.filter((t) => t.parentTaskId === task.id).length;
@@ -65,7 +68,7 @@ export function TaskCard({
           {task.deadline && (
             <span className={cn("inline-flex items-center gap-1", overdue && "text-destructive")}>
               <Calendar className="h-3 w-3" />
-              {fmt.date(task.deadline)}
+              {fmt.deadline(task.deadline)}
             </span>
           )}
           {task.effort && <span>· {fmt.duration(task.effort)}</span>}
@@ -75,6 +78,7 @@ export function TaskCard({
               {subtaskDone}/{subtaskCount}
             </span>
           )}
+          {assignee && <span className="truncate">{assignee}</span>}
         </div>
         {blockedByDep && (
           <span title="Blocked by dependency" className="text-warning">
@@ -100,7 +104,7 @@ export function TaskRow({ task, onClick }: { task: Task; onClick?: () => void })
       >
         {done && <span className="text-[10px] text-background leading-none">✓</span>}
       </button>
-      <button onClick={onClick} className="flex-1 min-w-0 text-left">
+      <button onClick={onClick} className="flex-1 min-w-0 text-start">
         <div className={cn("text-sm truncate", done && "line-through text-muted-foreground")}>
           {task.title}
         </div>
@@ -108,7 +112,7 @@ export function TaskRow({ task, onClick }: { task: Task; onClick?: () => void })
       <div className="flex items-center gap-2 opacity-80">
         {task.deadline && (
           <span className={cn("text-[11px] text-muted-foreground", isOverdue(task) && "text-destructive")}>
-            {fmt.date(task.deadline)}
+            {fmt.deadline(task.deadline)}
           </span>
         )}
         <PriorityBadge priority={task.priority} />

@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import i18n from "@/core/i18n";
 import { useLearnStore } from "@/core/learn-store";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -17,7 +19,7 @@ const PATTERNS = [
 export const Route = createFileRoute("/learn/problems")({
   head: () => ({
     meta: [
-      { title: "Problems — Life OS" },
+      { title: i18n.t("meta.problems") },
       { name: "description", content: "Competitive programming problem bank — track patterns and progress." },
     ],
   }),
@@ -25,6 +27,7 @@ export const Route = createFileRoute("/learn/problems")({
 });
 
 function ProblemsPage() {
+  const { t } = useTranslation();
   const { problems, distinctSubjects, upsertProblem, deleteProblem } = useLearnStore();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -52,11 +55,11 @@ function ProblemsPage() {
   return (
     <div>
       <PageHeader
-        title="Problems"
+        title={t("learn.problems")}
         description="Track CP problems by pattern class. Learn to recognize patterns."
         actions={
           <Button onClick={() => setCreating(true)}>
-            <Plus className="h-4 w-4 mr-1" />New Problem
+            <Plus className="h-4 w-4 me-1" />{t("learn.newProblem")}
           </Button>
         }
       />
@@ -64,25 +67,25 @@ function ProblemsPage() {
       {problems.length > 0 && (
         <div className="mb-4 flex items-center gap-2 flex-wrap">
           <Select value={filterSubject} onValueChange={setFilterSubject}>
-            <SelectTrigger className="w-36"><SelectValue placeholder="All subjects" /></SelectTrigger>
+            <SelectTrigger className="w-36"><SelectValue placeholder={t("learn.allSubjects")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All subjects</SelectItem>
+              <SelectItem value="all">{t("learn.allSubjects")}</SelectItem>
               {subjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={filterPattern} onValueChange={setFilterPattern}>
-            <SelectTrigger className="w-40"><SelectValue placeholder="All patterns" /></SelectTrigger>
+            <SelectTrigger className="w-40"><SelectValue placeholder={t("learn.allPatterns")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All patterns</SelectItem>
+              <SelectItem value="all">{t("learn.allPatterns")}</SelectItem>
               {usedPatterns.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-32"><SelectValue placeholder="All status" /></SelectTrigger>
+            <SelectTrigger className="w-32"><SelectValue placeholder={t("learn.allStatus")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="open">Open</SelectItem>
-              <SelectItem value="done">Completed</SelectItem>
+              <SelectItem value="all">{t("common.all")}</SelectItem>
+              <SelectItem value="open">{t("common.open")}</SelectItem>
+              <SelectItem value="done">{t("more.completed")}</SelectItem>
             </SelectContent>
           </Select>
           <div className="text-xs text-muted-foreground">

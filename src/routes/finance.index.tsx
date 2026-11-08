@@ -1,12 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "@/core/store";
+import i18n from "@/core/i18n";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { fmtMoney, signedAmount, topCategories, savingsRate, financialHealthScore, budgetSpent, periodRange, convertCurrency } from "@/core/finance-utils";
 import { TransactionDialog } from "@/components/finance/TransactionDialog";
 import { TrendingUp, TrendingDown, Wallet, PiggyBank, Plus, ArrowRightLeft, Sparkles, RotateCcw } from "lucide-react";
-import { format, isWeekend, startOfMonth, endOfMonth } from "date-fns";
+import { isWeekend } from "date-fns";
+import { formatWhen } from "@/core/utils";
 import { Input } from "@/components/ui/input";
 import { Card, EmptyState } from "@/components/common/Card";
 import {
@@ -24,7 +27,7 @@ import {
 export const Route = createFileRoute("/finance/")({
   head: () => ({
     meta: [
-      { title: "Finance — Life OS" },
+      { title: i18n.t("meta.finance") },
       { name: "description", content: "Track income, expenses, savings, budgets and accounts." },
     ],
   }),
@@ -32,6 +35,7 @@ export const Route = createFileRoute("/finance/")({
 });
 
 function FinanceDashboard() {
+  const { t } = useTranslation();
   const { accounts, transactions, categories, budgets, savingsGoals, settings } = useStore();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -46,11 +50,11 @@ function FinanceDashboard() {
   const totalBalance = accounts.reduce((a, x) => a + toBase(x.balance, x.currency), 0);
 
   const { start, end } = periodRange("monthly");
-  const monthTx = transactions.filter((t) => t.date >= start && t.date <= end);
-  const income = monthTx.filter((t) => t.type === "income")
-    .reduce((a, t) => a + toBase(t.amount, txCurrency(t.accountId)), 0);
-  const expenses = monthTx.filter((t) => t.type === "expense")
-    .reduce((a, t) => a + toBase(t.amount, txCurrency(t.accountId)), 0);
+  const monthTx = transactions.filter((tx) => tx.date >= start && tx.date <= end);
+  const income = monthTx.filter((tx) => tx.type === "income")
+    .reduce((a, tx) => a + toBase(tx.amount, txCurrency(tx.accountId)), 0);
+  const expenses = monthTx.filter((tx) => tx.type === "expense")
+    .reduce((a, tx) => a + toBase(tx.amount, txCurrency(tx.accountId)), 0);
   const sRate = savingsRate(income, expenses);
 
   const recentTx = useMemo(
@@ -74,18 +78,18 @@ function FinanceDashboard() {
     else if (cat && spent > b.limitAmount * 0.85) insights.push(`Approaching ${cat.name} budget (${Math.round(spent / b.limitAmount * 100)}%)`);
   }
   if (sRate < 10 && income > 0) insights.push("Savings rate is low this month — consider trimming top categories.");
-  const weekendSpend = monthTx.filter((t) => t.type === "expense" && isWeekend(t.date)).reduce((a, t) => a + t.amount, 0);
+  const weekendSpend = monthTx.filter((tx) => tx.type === "expense" && isWeekend(tx.date)).reduce((a, tx) => a + tx.amount, 0);
   if (expenses > 0 && weekendSpend / expenses > 0.5) insights.push("Most spending happens on weekends.");
 
   return (
     <PageContainer>
       <PageHeader
-        title="Finance"
-        description={`Overview · ${format(new Date(), "MMMM yyyy")}`}
+        title={t("finance.title")}
+        description={t("finance.month", { month: formatWhen(new Date(), "MMMM yyyy") })}
         actions={
           <>
-            <Link to="/finance/transactions"><Button variant="outline" size="sm">All transactions</Button></Link>
-            <Button size="sm" onClick={() => setCreating(true)}><Plus className="h-4 w-4 mr-1" /> Add</Button>
+            <Link to="/finance/transactions"><Button variant="outline" size="sm">{t("finance.allTx")}</Button></Link>
+            <Button size="sm" onClick={() => setCreating(true)}><Plus className="h-4 w-4 me-1" /> {t("finance.add")}</Button>
           </>
         }
       />
@@ -102,9 +106,9 @@ function FinanceDashboard() {
 
       <div className="grid lg:grid-cols-3 gap-6">
         <section className="lg:col-span-2 space-y-6">
-          <Card title="Accounts" right={<Link to="/finance/accounts" className="text-xs text-primary hover:underline">Manage →</Link>}>
+          <Card title={t("finance.accounts")} right={<Link to="/finance/accounts" className="text-xs text-primary hover:underline">{t("more.manage")}</Link>}>
             {accounts.length === 0
-              ? <EmptyState>No accounts yet.</EmptyState>
+              ? <EmptyState>{t("more.noAccounts")}</EmptyState>
               : <div className="grid sm:grid-cols-2 gap-2">
                   {accounts.map((a) => (
                     <div key={a.id} className="rounded-lg border bg-muted/20 p-3 flex items-center gap-3">
@@ -121,27 +125,27 @@ function FinanceDashboard() {
                 </div>}
           </Card>
 
-          <Card title="Recent transactions" right={<Link to="/finance/transactions" className="text-xs text-primary hover:underline">All →</Link>}>
+          <Card title={t("more.recentTx")} right={<Link to="/finance/transactions" className="text-xs text-primary hover:underline">{t("dashboard.allGoals")}</Link>}>
             {recentTx.length === 0
-              ? <EmptyState>No transactions yet.</EmptyState>
+              ? <EmptyState>{t("more.noTx")}</EmptyState>
               : <div className="divide-y divide-border/50">
-                  {recentTx.map((t) => {
-                    const cat = categories.find((c) => c.id === t.categoryId);
-                    const acc = accounts.find((a) => a.id === t.accountId);
-                    const sign = signedAmount(t);
+                  {recentTx.map((tx) => {
+                    const cat = categories.find((c) => c.id === tx.categoryId);
+                    const acc = accounts.find((a) => a.id === tx.accountId);
+                    const sign = signedAmount(tx);
                     return (
-                      <button key={t.id} onClick={() => setEditingId(t.id)} className="w-full flex items-center gap-3 py-2.5 text-left hover:bg-muted/30 px-2 rounded-md">
+                      <button key={tx.id} onClick={() => setEditingId(tx.id)} className="w-full flex items-center gap-3 py-2.5 text-left hover:bg-muted/30 px-2 rounded-md">
                         <div className="h-8 w-8 rounded-md grid place-items-center" style={{ background: `${cat?.color ?? "#888"}25` }}>
-                          {t.type === "transfer" ? <ArrowRightLeft className="h-4 w-4 text-info" />
-                            : t.type === "income" ? <TrendingUp className="h-4 w-4 text-success" />
+                          {tx.type === "transfer" ? <ArrowRightLeft className="h-4 w-4 text-info" />
+                            : tx.type === "income" ? <TrendingUp className="h-4 w-4 text-success" />
                             : <TrendingDown className="h-4 w-4 text-destructive" />}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm truncate">{t.note || cat?.name || (t.type === "transfer" ? "Transfer" : "—")}</div>
-                          <div className="text-[11px] text-muted-foreground">{format(t.date, "MMM d")} · {acc?.name ?? "—"}</div>
+                          <div className="text-sm truncate">{tx.note || cat?.name || (tx.type === "transfer" ? t("finance.transfer") : "—")}</div>
+                          <div className="text-[11px] text-muted-foreground">{formatWhen(tx.date, "MMM d")} · {acc?.name ?? "—"}</div>
                         </div>
                         <div className={`text-sm font-semibold tabular-nums ${sign > 0 ? "text-success" : sign < 0 ? "text-destructive" : "text-info"}`}>
-                          {sign > 0 ? "+" : sign < 0 ? "−" : ""}{fmtMoney(Math.abs(t.amount), acc?.currency ?? currency)}
+                          {sign > 0 ? "+" : sign < 0 ? "−" : ""}{fmtMoney(Math.abs(tx.amount), acc?.currency ?? currency)}
                         </div>
                       </button>
                     );
@@ -164,7 +168,7 @@ function FinanceDashboard() {
           </Card>
 
           <Card title="Top expense categories">
-            {topExpense.length === 0 ? <EmptyState>No expenses this month.</EmptyState>
+            {topExpense.length === 0 ? <EmptyState>{t("more.noExpensesMonth")}</EmptyState>
               : <div className="space-y-2 px-2 pb-1">
                   {topExpense.map((c) => {
                     const pct = expenses ? Math.round((c.total / expenses) * 100) : 0;
@@ -183,8 +187,8 @@ function FinanceDashboard() {
                 </div>}
           </Card>
 
-          <Card title="Savings goals" right={<Link to="/finance/savings" className="text-xs text-primary hover:underline">All →</Link>}>
-            {savingsGoals.length === 0 ? <EmptyState>No goals set.</EmptyState>
+          <Card title={t("more.savingsGoals")} right={<Link to="/finance/savings" className="text-xs text-primary hover:underline">{t("dashboard.allGoals")}</Link>}>
+            {savingsGoals.length === 0 ? <EmptyState>{t("dashboard.noGoals")}</EmptyState>
               : <div className="space-y-3 px-2 pb-1">
                   {savingsGoals.slice(0, 3).map((g) => {
                     const pct = g.targetAmount ? Math.min(100, Math.round((g.currentAmount / g.targetAmount) * 100)) : 0;
@@ -219,9 +223,9 @@ function FinanceDashboard() {
             </Card>
           )}
           <Card title="USD → LBP rate">
-  <RateEditor />
-</Card>
-<ResetFinanceButton />
+            <RateEditor />
+          </Card>
+          <ResetFinanceButton />
         </aside>
       </div>
 
@@ -244,6 +248,7 @@ function Stat({ icon: Icon, label, value, accent }: { icon: any; label: string; 
 }
 
 function ResetFinanceButton() {
+  const { t } = useTranslation();
   const { resetFinance } = useStore();
   const [open, setOpen] = useState(false);
 
@@ -252,22 +257,22 @@ function ResetFinanceButton() {
       <AlertDialogTrigger asChild>
         <div className="px-2 pb-2">
           <Button size="sm" variant="outline" className="w-full h-8 text-xs text-destructive border-destructive/30 hover:bg-destructive/10">
-            <RotateCcw className="h-3.5 w-3.5 mr-1" />
+            <RotateCcw className="h-3.5 w-3.5 me-1" />
             Reset All Transactions + Balance
           </Button>
         </div>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Reset all finance data?</AlertDialogTitle>
+          <AlertDialogTitle>{t("more.resetFinance")}</AlertDialogTitle>
           <AlertDialogDescription>
             This will permanently delete all transactions and reset every account balance to its initial amount. This cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
           <AlertDialogAction onClick={async () => { await resetFinance(); setOpen(false); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-            Reset
+            {t("common.reset")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

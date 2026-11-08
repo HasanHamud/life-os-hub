@@ -4,7 +4,7 @@ import {
   getAll, putOne, delOne, uid, getOne, clearStore,
 } from "./db";
 import type {
-  Task, TimeBlock, Project, Goal, Session, Tag, LogEntry, Settings, TaskStatus, Recurrence, Note,
+  Task, Project, Goal, Session, Tag, LogEntry, Settings, TaskStatus, Recurrence, Note,
   WeeklyPlan, WeekTemplate,
 } from "./types";
 import { DEFAULT_WEEK_CATEGORIES } from "./types";
@@ -12,11 +12,35 @@ import type {
   Account, Transaction, Category, Budget, SavingsGoal, FinanceRecurrence,
 } from "./finance-types";
 import { recomputeAccountBalances } from "./finance-utils";
+import { DEFAULT_THEME, normalizeTheme } from "./theme";
+import { normalizeLocale } from "./locale";
+import { viewUserId } from "./session";
+
+type LoadGuard = { epoch: number; view: string | null };
+
+let loadEpoch = 0;
+
+function loadMoved(guard?: LoadGuard) {
+  return !!guard && (loadEpoch !== guard.epoch || viewUserId() !== guard.view);
+}
+
+function taskIdsOf(entry?: Partial<LogEntry> | null): string[] {
+  if (!entry) return [];
+  if (Array.isArray(entry.relatedTaskIds)) return entry.relatedTaskIds.filter((id) => !!id);
+  return entry.relatedTaskId ? [entry.relatedTaskId] : [];
+}
+
+function scaleOrEmpty(value: LogEntry["mood"] | null | undefined): LogEntry["mood"] | undefined {
+  return value == null ? undefined : value;
+}
+
+function normalizeLog(log: LogEntry): LogEntry {
+  return { ...log, relatedTaskIds: taskIdsOf(log) };
+}
 
 interface State {
   loaded: boolean;
   tasks: Task[];
-  timeBlocks: TimeBlock[];
   projects: Project[];
   goals: Goal[];
   sessions: Session[];
@@ -39,17 +63,12 @@ interface State {
   load: () => Promise<void>;
 
   // tasks
-  upsertTask: (t: Partial<Task> & { title?: string }) => Promise<Task>;
+  upsertTask: (t: Partial<Omit<Task, "projectId" | "assigneeId">> & { title?: string; projectId?: string | null; assigneeId?: string | null }) => Promise<Task>;
   deleteTask: (id: string) => Promise<void>;
   setTaskStatus: (id: string, status: TaskStatus) => Promise<void>;
 
-  // time blocks
-  upsertBlock: (b: Partial<TimeBlock> & { startTime?: number; endTime?: number; title?: string }) => Promise<TimeBlock>;
-  deleteBlock: (id: string) => Promise<void>;
-  clearTimeBlocks: () => Promise<void>;
-
   // projects
-  upsertProject: (p: Partial<Project> & { name?: string }) => Promise<Project>;
+  upsertProject: (p: Partial<Omit<Project, "managerId">> & { name?: string; managerId?: string | null }) => Promise<Project>;
   deleteProject: (id: string) => Promise<void>;
 
   // goals
@@ -75,8 +94,7 @@ interface State {
   updateSettings: (s: Partial<Settings>) => Promise<void>;
 
   // recurrence: ensure recurring task instances exist for the next N days
-  materializeRecurring: () => Promise<void>;
-  materializeRecurringBlocks: () => Promise<void>;
+  materializeRecurring: (guard?: LoadGuard) => Promise<void>;
 
   // ============ FINANCE ============
   upsertAccount: (a: Partial<Account> & { name?: string }) => Promise<Account>;
@@ -96,7 +114,7 @@ interface State {
 
   recomputeBalances: () => void;
   resetFinance: () => Promise<void>;
-  materializeFinanceRecurring: () => Promise<void>;
+  materializeFinanceRecurring: (guard?: LoadGuard) => Promise<void>;
 
   // weekly plan
   upsertWeeklyPlan: (p: Partial<WeeklyPlan> & { weekStart?: number }) => Promise<WeeklyPlan>;
@@ -116,6 +134,8 @@ interface State {
 
 const DEFAULT_SETTINGS: Settings = {
   id: "global",
+  locale: "en",
+  theme: DEFAULT_THEME,
   pomodoroFocus: 25,
   pomodoroBreak: 5,
   pomodoroLongBreak: 15,
@@ -125,12 +145,12 @@ const DEFAULT_SETTINGS: Settings = {
   workdayEnd: 20,
   baseCurrency: "USD",
   usdToLbpRate: 90000,
+  financeEnabled: false,
 };
 
 export const useStore = create<State>((set, get) => ({
   loaded: false,
   tasks: [],
-  timeBlocks: [],
   projects: [],
   goals: [],
   sessions: [],
@@ -148,11 +168,14 @@ export const useStore = create<State>((set, get) => ({
   weekTemplates: [],
 
   load: async () => {
-    const [tasks, timeBlocks, projects, goals, sessions, tags, logs,
+    const epoch = ++loadEpoch;
+    const view = viewUserId();
+    const guard = { epoch, view };
+    const stale = () => loadMoved(guard);
+    const [tasks, projects, goals, sessions, tags, logs,
       accounts, transactions, categories, budgets, savingsGoals, notes,
       weeklyPlans, weekTemplates] = await Promise.all([
       getAll<Task>("tasks"),
-      getAll<TimeBlock>("timeBlocks"),
       getAll<Project>("projects"),
       getAll<Goal>("goals"),
       getAll<Session>("sessions"),
@@ -167,21 +190,29 @@ export const useStore = create<State>((set, get) => ({
       getAll<WeeklyPlan>("weeklyPlans"),
       getAll<WeekTemplate>("weekTemplates"),
     ]);
+    if (stale()) return;
     let settings = await getOne<Settings>("settings", "global");
+    if (stale()) return;
     if (!settings) {
       settings = DEFAULT_SETTINGS;
       await putOne("settings", settings);
     } else {
       // backfill new fields for existing installs
-      settings = { ...DEFAULT_SETTINGS, ...settings };
+      settings = {
+        ...DEFAULT_SETTINGS,
+        ...settings,
+        locale: normalizeLocale(settings.locale),
+        theme: normalizeTheme(settings.theme),
+        financeEnabled: Boolean(settings.financeEnabled),
+      };
       await putOne("settings", settings);
     }
+    if (stale()) return;
 
-    const [t2, b2, p2, g2, ses2, tg2, lg2,
+    const [t2, p2, g2, ses2, tg2, lg2,
       acc2, tx2, cat2, bud2, sg2, n2,
       wp2, wt2] = await Promise.all([
       getAll<Task>("tasks"),
-      getAll<TimeBlock>("timeBlocks"),
       getAll<Project>("projects"),
       getAll<Goal>("goals"),
       getAll<Session>("sessions"),
@@ -196,20 +227,22 @@ export const useStore = create<State>((set, get) => ({
       getAll<WeeklyPlan>("weeklyPlans"),
       getAll<WeekTemplate>("weekTemplates"),
     ]);
+    if (stale()) return;
 
     const accWithBalances = recomputeAccountBalances(acc2, tx2);
 
     set({
-      tasks: t2, timeBlocks: b2, projects: p2, goals: g2, sessions: ses2, tags: tg2, logs: lg2, settings,
+      tasks: t2, projects: p2, goals: g2, sessions: ses2, tags: tg2, logs: lg2.map(normalizeLog), settings,
       accounts: accWithBalances, transactions: tx2, categories: cat2, budgets: bud2, savingsGoals: sg2,
       notes: n2,
       weeklyPlans: wp2, weekTemplates: wt2,
       loaded: true,
     });
+    if (stale()) return;
 
-    await get().materializeRecurring();
-    await get().materializeRecurringBlocks();
-    await get().materializeFinanceRecurring();
+    await get().materializeRecurring(guard);
+    if (stale()) return;
+    await get().materializeFinanceRecurring(guard);
   },
 
   upsertTask: async (patch) => {
@@ -223,11 +256,12 @@ export const useStore = create<State>((set, get) => ({
       priority: patch.priority ?? existing?.priority ?? "med",
       effort: patch.effort ?? existing?.effort,
       deadline: "deadline" in patch ? patch.deadline : existing?.deadline,
-      projectId: patch.projectId ?? existing?.projectId,
+      projectId: patch.projectId === null ? undefined : (patch.projectId ?? existing?.projectId),
       goalId: patch.goalId ?? existing?.goalId,
       tagIds: patch.tagIds ?? existing?.tagIds ?? [],
       parentTaskId: patch.parentTaskId ?? existing?.parentTaskId,
       dependsOnIds: patch.dependsOnIds ?? existing?.dependsOnIds ?? [],
+      assigneeId: patch.assigneeId === null ? undefined : (patch.assigneeId ?? existing?.assigneeId),
       recurrence: patch.recurrence ?? existing?.recurrence,
       recurrenceParentId: patch.recurrenceParentId ?? existing?.recurrenceParentId,
       archived: patch.archived ?? existing?.archived ?? false,
@@ -240,7 +274,7 @@ export const useStore = create<State>((set, get) => ({
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
     };
-    await putOne("tasks", task);
+    await putOne("tasks", { ...task, projectId: task.projectId ?? null });
     set((s) => ({
       tasks: existing ? s.tasks.map((x) => (x.id === task.id ? task : x)) : [...s.tasks, task],
     }));
@@ -260,40 +294,6 @@ export const useStore = create<State>((set, get) => ({
     await get().upsertTask({ ...t, status });
   },
 
-  upsertBlock: async (patch) => {
-    const existing = patch.id ? get().timeBlocks.find((x) => x.id === patch.id) : undefined;
-    const block: TimeBlock = {
-      id: existing?.id ?? uid(),
-      taskId: patch.taskId ?? existing?.taskId,
-      title: patch.title ?? existing?.title ?? "Time Block",
-      startTime: patch.startTime ?? existing?.startTime ?? Date.now(),
-      endTime: patch.endTime ?? existing?.endTime ?? Date.now() + 3600_000,
-      type: patch.type ?? existing?.type ?? "work",
-      isCompleted: patch.isCompleted ?? existing?.isCompleted ?? false,
-      notes: patch.notes ?? existing?.notes,
-      recurrence: "recurrence" in patch ? patch.recurrence : existing?.recurrence,
-      recurrenceParentId: patch.recurrenceParentId ?? existing?.recurrenceParentId,
-      createdAt: existing?.createdAt ?? Date.now(),
-    };
-    await putOne("timeBlocks", block);
-    set((s) => ({
-      timeBlocks: existing ? s.timeBlocks.map((x) => (x.id === block.id ? block : x)) : [...s.timeBlocks, block],
-    }));
-    if (block.recurrence && block.recurrence.freq !== "none" && !block.recurrenceParentId) {
-      await get().materializeRecurringBlocks();
-    }
-    return block;
-  },
-  deleteBlock: async (id) => {
-    await delOne("timeBlocks", id);
-    set((s) => ({ timeBlocks: s.timeBlocks.filter((x) => x.id !== id) }));
-  },
-
-  clearTimeBlocks: async () => {
-    await clearStore("timeBlocks");
-    set({ timeBlocks: [] });
-  },
-
   upsertProject: async (patch) => {
     const existing = patch.id ? get().projects.find((x) => x.id === patch.id) : undefined;
     const p: Project = {
@@ -302,6 +302,7 @@ export const useStore = create<State>((set, get) => ({
       description: patch.description ?? existing?.description,
       color: patch.color ?? existing?.color ?? "#d4a574",
       category: patch.category ?? existing?.category,
+      managerId: patch.managerId === null ? undefined : (patch.managerId ?? existing?.managerId),
       archived: patch.archived ?? existing?.archived ?? false,
       createdAt: existing?.createdAt ?? Date.now(),
     };
@@ -408,10 +409,14 @@ export const useStore = create<State>((set, get) => ({
       id: existing?.id ?? uid(),
       date: patch.date ?? existing?.date ?? format(new Date(), "yyyy-MM-dd"),
       content: patch.content ?? existing?.content ?? "",
-      relatedTaskId: patch.relatedTaskId ?? existing?.relatedTaskId,
-      mood: patch.mood ?? existing?.mood,
-      energy: patch.energy ?? existing?.energy,
+      relatedTaskIds: "relatedTaskIds" in patch ? taskIdsOf(patch) : taskIdsOf(existing),
+      // null (not undefined) so a cleared mood or energy is stored. JSON drops undefined keys.
+      mood: (("mood" in patch ? scaleOrEmpty(patch.mood) : existing?.mood) ?? null) as LogEntry["mood"],
+      energy: (("energy" in patch ? scaleOrEmpty(patch.energy) : existing?.energy) ?? null) as LogEntry["energy"],
       createdAt: existing?.createdAt ?? Date.now(),
+      adminNote: existing?.adminNote,
+      adminNoteAt: existing?.adminNoteAt,
+      adminNoteBy: existing?.adminNoteBy,
     };
     await putOne("logs", l);
     set((s) => ({ logs: existing ? s.logs.map((x) => (x.id === l.id ? l : x)) : [...s.logs, l] }));
@@ -428,10 +433,10 @@ export const useStore = create<State>((set, get) => ({
     set({ settings: next });
   },
 
-  materializeRecurring: async () => {
+  materializeRecurring: async (guard) => {
     const tasks = get().tasks;
     const templates = tasks.filter((t) => t.recurrence && t.recurrence.freq !== "none" && !t.recurrenceParentId);
-    if (templates.length === 0) return;
+    if (templates.length === 0 || loadMoved(guard)) return;
     const horizonDays = 14;
     const today = startOfDay(new Date());
     for (const tpl of templates) {
@@ -451,6 +456,7 @@ export const useStore = create<State>((set, get) => ({
           (t) => t.recurrenceParentId === tpl.id && t.deadline && format(t.deadline, "yyyy-MM-dd") === dayStr
         );
         if (exists) continue;
+        if (loadMoved(guard)) return;
         await get().upsertTask({
           title: tpl.title,
           description: tpl.description,
@@ -467,47 +473,6 @@ export const useStore = create<State>((set, get) => ({
     }
   },
 
-  materializeRecurringBlocks: async () => {
-    const blocks = get().timeBlocks;
-    const templates = blocks.filter((b) => b.recurrence && b.recurrence.freq !== "none" && !b.recurrenceParentId);
-    if (templates.length === 0) return;
-    const horizonDays = 21;
-    const today = startOfDay(new Date());
-    for (const tpl of templates) {
-      const r = tpl.recurrence as Recurrence;
-      const dur = tpl.endTime - tpl.startTime;
-      const tplStart = new Date(tpl.startTime);
-      const tplDay = startOfDay(tplStart);
-      for (let i = 1; i <= horizonDays; i++) {
-        const day = addDays(today, i);
-        if (r.until && day.getTime() > r.until) continue;
-        let shouldCreate = false;
-        if (r.freq === "daily") shouldCreate = true;
-        else if (r.freq === "weekly" && r.weekdays?.includes(day.getDay())) shouldCreate = true;
-        else if (r.freq === "custom" && r.intervalDays) {
-          const diff = Math.floor((day.getTime() - tplDay.getTime()) / 86400000);
-          shouldCreate = diff > 0 && diff % r.intervalDays === 0;
-        }
-        if (!shouldCreate) continue;
-        const newStart = new Date(day);
-        newStart.setHours(tplStart.getHours(), tplStart.getMinutes(), 0, 0);
-        const dayStr = format(day, "yyyy-MM-dd");
-        const exists = blocks.some(
-          (b) => b.recurrenceParentId === tpl.id && format(b.startTime, "yyyy-MM-dd") === dayStr
-        );
-        if (exists) continue;
-        await get().upsertBlock({
-          title: tpl.title,
-          type: tpl.type,
-          taskId: tpl.taskId,
-          notes: tpl.notes,
-          startTime: newStart.getTime(),
-          endTime: newStart.getTime() + dur,
-          recurrenceParentId: tpl.id,
-        });
-      }
-    }
-  },
   upsertAccount: async (patch) => {
     const existing = patch.id ? get().accounts.find((x) => x.id === patch.id) : undefined;
     const a: Account = {
@@ -645,10 +610,10 @@ export const useStore = create<State>((set, get) => ({
     set({ transactions: [], accounts: resetAccounts });
   },
 
-  materializeFinanceRecurring: async () => {
+  materializeFinanceRecurring: async (guard) => {
     const txs = get().transactions;
     const templates = txs.filter((t) => t.recurrence && t.recurrence.freq !== "none" && !t.recurrenceParentId);
-    if (templates.length === 0) return;
+    if (templates.length === 0 || loadMoved(guard)) return;
     const now = Date.now();
     for (const tpl of templates) {
       const r = tpl.recurrence as FinanceRecurrence;
@@ -659,6 +624,7 @@ export const useStore = create<State>((set, get) => ({
         if (r.until && next > r.until) break;
         const exists = txs.some((t) => t.recurrenceParentId === tpl.id && Math.abs(t.date - next) < 60_000);
         if (!exists) {
+          if (loadMoved(guard)) return;
           await get().upsertTransaction({
             type: tpl.type,
             amount: tpl.amount,
@@ -773,18 +739,6 @@ export const useStore = create<State>((set, get) => ({
     const sun = startOfDay(new Date(weekStart));
     for (const day of tpl.days) {
       const dayDate = addDays(sun, day.dayOfWeek);
-      // create time blocks
-      for (const b of day.blocks) {
-        const blockStart = new Date(dayDate);
-        blockStart.setHours(b.startHour, b.startMin, 0, 0);
-        await get().upsertBlock({
-          title: b.title,
-          type: b.type,
-          startTime: blockStart.getTime(),
-          endTime: blockStart.getTime() + b.durationMin * 60_000,
-        });
-      }
-      // create tasks with deadline on that day
       for (const t of day.tasks) {
         const deadline = new Date(dayDate);
         deadline.setHours(23, 59, 0, 0);

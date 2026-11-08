@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "@/core/store";
+import i18n from "@/core/i18n";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,11 +16,12 @@ import type { SavingsGoal } from "@/core/finance-types";
 import { format, differenceInDays } from "date-fns";
 
 export const Route = createFileRoute("/finance/savings")({
-  head: () => ({ meta: [{ title: "Savings — Finance" }] }),
+  head: () => ({ meta: [{ title: i18n.t("meta.savings") }] }),
   component: SavingsPage,
 });
 
 function SavingsPage() {
+  const { t } = useTranslation();
   const { savingsGoals, goals, settings, upsertSavingsGoal, deleteSavingsGoal } = useStore();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<SavingsGoal | null>(null);
@@ -38,7 +41,7 @@ function SavingsPage() {
       <PageHeader
         title="Savings goals"
         description="Track progress toward financial milestones."
-        actions={<Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}><Plus className="h-4 w-4 mr-1" /> Add goal</Button>}
+        actions={<Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}><Plus className="h-4 w-4 me-1" /> Add goal</Button>}
       />
 
       <div className="rounded-xl border bg-card p-4 mb-4 flex items-center gap-4">
@@ -70,7 +73,7 @@ function SavingsPage() {
                   <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setEditing(g); setOpen(true); }}><Pencil className="h-3 w-3" /></Button>
                   <Button size="icon" variant="ghost" className="h-6 w-6" onClick={async () => {
                     await deleteSavingsGoal(g.id);
-                    toast.success("Savings goal deleted");
+                    toast.success(t("finance.savingsDeleted"));
                   }}><Trash2 className="h-3 w-3 text-destructive" /></Button>
                 </div>
               </div>
@@ -108,6 +111,7 @@ function SavingsDialog({
   onSubmit: (g: Partial<SavingsGoal>) => Promise<SavingsGoal>;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const { goals } = useStore();
   const [title, setTitle] = useState("");
   const [target, setTarget] = useState("");
@@ -134,21 +138,21 @@ function SavingsDialog({
   const reset = () => { setTitle(""); setTarget(""); setCurrent("0"); setCurrency("USD"); setDeadline(""); setLinkedGoalId("none"); setColor("#90b890"); };
 
   const submit = async () => {
-    if (!title.trim()) return toast.error("Title required");
-    const t = Number(target);
-    if (!t || t <= 0) return toast.error("Target must be > 0");
+    if (!title.trim()) return toast.error(t("errors.titleRequiredShort"));
+    const targetNum = Number(target);
+    if (!targetNum || targetNum <= 0) return toast.error(t("errors.targetPositive"));
     const isNew = !goal;
     await onSubmit({
       id: goal?.id,
       title: title.trim(),
-      targetAmount: t,
+      targetAmount: targetNum,
       currentAmount: Number(current) || 0,
       currency,
       deadline: deadline ? new Date(deadline).getTime() : undefined,
       linkedGoalId: linkedGoalId === "none" ? undefined : linkedGoalId,
       color,
     });
-    toast.success(isNew ? "Savings goal added" : "Savings goal updated");
+    toast.success(isNew ? t("finance.savingsAdded") : t("finance.savingsUpdated"));
     reset(); onClose();
   };
 
@@ -158,22 +162,22 @@ function SavingsDialog({
         <DialogHeader><DialogTitle>{goal ? "Edit savings goal" : "New savings goal"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div>
-            <Label className="text-xs">Title</Label>
+            <Label className="text-xs">{t("common.title")}</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Currency</Label>
+              <Label className="text-xs">{t("more.currency")}</Label>
               <Select value={currency} onValueChange={setCurrency}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="USD">USD — US Dollar</SelectItem>
-                  <SelectItem value="LBP">LBP — Lebanese Lira</SelectItem>
+                  <SelectItem value="USD">{t("more.usd")}</SelectItem>
+                  <SelectItem value="LBP">{t("more.lbp")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Deadline</Label>
+              <Label className="text-xs">{t("tasks.deadline")}</Label>
               <Input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
             </div>
             <div>
@@ -185,14 +189,14 @@ function SavingsDialog({
               <Input type="number" step="0.01" value={current} onChange={(e) => setCurrent(e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs">Color</Label>
+              <Label className="text-xs">{t("common.color")}</Label>
               <Input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-9 p-1" />
             </div>
           </div>
           <div>
-            <Label className="text-xs">Link to life goal</Label>
+            <Label className="text-xs">{t("more.linkGoal")}</Label>
             <Select value={linkedGoalId} onValueChange={setLinkedGoalId}>
-              <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("common.none")} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">— None —</SelectItem>
                 {goals.map((g) => <SelectItem key={g.id} value={g.id}>{g.title}</SelectItem>)}
@@ -201,8 +205,8 @@ function SavingsDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => { reset(); onOpenChange(false); }}>Cancel</Button>
-          <Button onClick={submit}>{goal ? "Save" : "Add"}</Button>
+          <Button variant="outline" onClick={() => { reset(); onOpenChange(false); }}>{t("common.cancel")}</Button>
+          <Button onClick={submit}>{goal ? t("common.save") : t("finance.add")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

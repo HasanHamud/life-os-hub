@@ -1,10 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import i18n from "@/core/i18n";
 import { useLearnStore } from "@/core/learn-store";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { PhaseProgressBar } from "@/components/learn/PhaseProgressBar";
 import { StreakChart } from "@/components/learn/StreakChart";
+import { formatWhen } from "@/core/utils";
 import { Brain, Lightbulb, Code, Clock, TrendingUp, FileText } from "lucide-react";
 import { startOfWeek, endOfWeek, format } from "date-fns";
 import { toast } from "sonner";
@@ -12,21 +15,30 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/learn/progress")({
   head: () => ({
     meta: [
-      { title: "Progress — Life OS" },
-      { name: "description", content: "Learning analytics — streaks, phase progress, concepts mastered." },
+      { title: i18n.t("meta.progress") },
+      { name: "description", content: i18n.t("meta.progressDesc") },
     ],
   }),
   component: ProgressPage,
 });
 
+function phaseName(phase: number, t: (key: string, options?: { n: number }) => string) {
+  if (phase === 1) return t("learn.phases.p1");
+  if (phase === 2) return t("learn.phases.p2");
+  if (phase === 3) return t("learn.phases.p3");
+  if (phase === 4) return t("learn.phases.p4");
+  return t("learn.phases.phase", { n: phase });
+}
+
 function ProgressPage() {
+  const { t } = useTranslation();
   const { concepts, insights, problems, sessions } = useLearnStore();
 
   const phaseData = useMemo(() => {
     const phaseMap = new Map<number, { total: number; clear: number; label: string }>();
     for (const c of concepts) {
       if (!phaseMap.has(c.phase)) {
-        phaseMap.set(c.phase, { total: 0, clear: 0, label: getPhaseLabel(c.phase) });
+        phaseMap.set(c.phase, { total: 0, clear: 0, label: phaseName(c.phase, t) });
       }
       const entry = phaseMap.get(c.phase)!;
       entry.total++;
@@ -39,7 +51,7 @@ function ProgressPage() {
         pct: total > 0 ? Math.round((clear / total) * 100) : 0,
       }))
       .sort((a, b) => a.phase - b.phase);
-  }, [concepts]);
+  }, [concepts, t]);
 
   const sessionDates = useMemo(
     () => sessions.map((s) => s.date),
@@ -62,11 +74,11 @@ function ProgressPage() {
   );
 
   const metrics = [
-    { label: "Concepts", value: concepts.length, icon: Brain, color: "text-primary" },
-    { label: "Avg clarity", value: avgClarity.toString(), suffix: "/5", icon: TrendingUp, color: "text-warning" },
-    { label: "Problems done", value: completedProblems, icon: Code, color: "text-success" },
-    { label: "Total time", value: totalTime >= 60 ? `${Math.round(totalTime / 60)}h` : `${totalTime}m`, icon: Clock, color: "text-info" },
-    { label: "Insights", value: insights.length, icon: Lightbulb, color: "text-warning" },
+    { label: t("learn.concepts"), value: concepts.length, icon: Brain, color: "text-primary" },
+    { label: t("learn.avgClarity"), value: avgClarity.toString(), suffix: "/5", icon: TrendingUp, color: "text-warning" },
+    { label: t("learn.problemsDone"), value: completedProblems, icon: Code, color: "text-success" },
+    { label: t("learn.totalTime"), value: totalTime >= 60 ? `${Math.round(totalTime / 60)}h` : `${totalTime}m`, icon: Clock, color: "text-info" },
+    { label: t("learn.insights"), value: insights.length, icon: Lightbulb, color: "text-warning" },
   ];
 
   const exportWeekSummary = () => {
@@ -78,11 +90,11 @@ function ProgressPage() {
       return d >= mon && d <= sun;
     });
     if (weekInsights.length === 0) {
-      toast.error("No insights this week");
+      toast.error(t("learn.noWeek"));
       return;
     }
     const lines: string[] = [
-      `# Weekly Learning Summary — ${format(mon, "MMM d")} – ${format(sun, "MMM d, yyyy")}`,
+      `# ${t("learn.weekTitle", { from: formatWhen(mon, "MMM d"), to: formatWhen(sun, "MMM d, yyyy") })}`,
       "",
     ];
     const bySubject = new Map<string, typeof weekInsights>();
@@ -99,15 +111,15 @@ function ProgressPage() {
           lines.push(`- ${item}`);
         }
         if (ins.mistakes) {
-          lines.push(`  > Mistake: ${ins.mistakes}`);
+          lines.push(`  > ${t("learn.mistake", { text: ins.mistakes })}`);
         }
         lines.push("");
       }
     }
     lines.push("---");
-    lines.push(`Total insights: ${weekInsights.length}`);
+    lines.push(t("learn.totalInsights", { count: weekInsights.length }));
     const weekSubjects = new Set(weekInsights.map((i) => i.subject));
-    lines.push(`Subjects: ${Array.from(weekSubjects).join(", ")}`);
+    lines.push(t("learn.subjects", { list: Array.from(weekSubjects).join(", ") }));
 
     const blob = new Blob([lines.join("\n")], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
@@ -116,14 +128,14 @@ function ProgressPage() {
     a.download = `learning-week-${format(mon, "yyyy-MM-dd")}.md`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Week summary exported");
+    toast.success(t("learn.exported"));
   };
 
   return (
     <div>
       <PageHeader
-        title="Progress"
-        description="Track your learning journey across subjects and phases."
+        title={t("learn.progressTitle")}
+        description={t("learn.progressDesc")}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
@@ -142,8 +154,8 @@ function ProgressPage() {
 
       <div className="flex items-center justify-end mb-4">
         <Button variant="outline" size="sm" onClick={exportWeekSummary}>
-          <FileText className="h-4 w-4 mr-1" />
-          Export Week Summary
+          <FileText className="h-4 w-4 me-1" />
+          {t("learn.exportWeek")}
         </Button>
       </div>
 
@@ -174,18 +186,18 @@ function ProgressPage() {
           Subject Breakdown
         </div>
         {concepts.length === 0 ? (
-          <div className="text-sm text-muted-foreground text-center py-4">No data yet.</div>
+          <div className="text-sm text-muted-foreground text-center py-4">{t("more.noData")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-muted-foreground border-b">
-                  <th className="py-2 pr-3">Subject</th>
-                  <th className="py-2 pr-3 text-right">Concepts</th>
-                  <th className="py-2 pr-3 text-right">Avg Clarity</th>
-                  <th className="py-2 pr-3 text-right">Insights</th>
-                  <th className="py-2 pr-3 text-right">Problems</th>
-                  <th className="py-2 text-right">Time (min)</th>
+                <tr className="text-start text-[11px] uppercase tracking-wide text-muted-foreground border-b">
+                  <th className="py-2 pr-3">{t("learn.subject")}</th>
+                  <th className="py-2 pr-3 text-right">{t("learn.concepts")}</th>
+                  <th className="py-2 pr-3 text-right">{t("learn.avgClarity")}</th>
+                  <th className="py-2 pr-3 text-right">{t("learn.insights")}</th>
+                  <th className="py-2 pr-3 text-right">{t("learn.problems")}</th>
+                  <th className="py-2 text-end">{t("more.timeMin")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
@@ -206,16 +218,6 @@ function ProgressPage() {
       </div>
     </div>
   );
-}
-
-function getPhaseLabel(phase: number): string {
-  const labels: Record<number, string> = {
-    1: "Foundation",
-    2: "Structure Building",
-    3: "Systems Thinking",
-    4: "Advanced Integration",
-  };
-  return labels[phase] ?? `Phase ${phase}`;
 }
 
 function subjectsToRows(

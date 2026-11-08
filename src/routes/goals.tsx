@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useStore } from "@/core/store";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
@@ -12,30 +12,32 @@ import { goalProgress, fmt } from "@/core/utils";
 import { differenceInDays, addDays, format } from "date-fns";
 import { Plus, Target, Trash2 } from "lucide-react";
 import { TaskRow } from "@/components/tasks/TaskCard";
-import { TaskDialog } from "@/components/tasks/TaskDialog";
+import { useTranslation } from "react-i18next";
+import i18n from "@/core/i18n";
 
 export const Route = createFileRoute("/goals")({
   head: () => ({ meta: [
-    { title: "Goals — Life OS" },
+    { title: i18n.t("meta.goals") },
     { name: "description", content: "30/60/90 day goals with linked tasks and progress tracking." },
   ]}),
   component: GoalsPage,
 });
 
 function GoalsPage() {
+  const { t } = useTranslation();
   const { goals, tasks, sessions, upsertGoal, deleteGoal } = useStore();
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [editTaskId, setEditTaskId] = useState<string | null>(null);
+  const navigate = useNavigate();
   const open = openId ? goals.find((g) => g.id === openId) : null;
 
   return (
     <PageContainer>
       <PageHeader
-        title="Goals"
+        title={t("goals.title")}
         description="Set time-boxed goals. Link tasks. Watch progress build."
-        actions={<Button onClick={() => setCreating(true)}><Plus className="h-4 w-4 mr-1" />New Goal</Button>}
+        actions={<Button onClick={() => setCreating(true)}><Plus className="h-4 w-4 me-1" />{t("goals.new")}</Button>}
       />
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -58,11 +60,11 @@ function GoalsPage() {
                   </div>
                 </div>
                 <button onClick={(e) => { e.stopPropagation(); setEditing(g.id); }}
-                  className="text-xs text-muted-foreground hover:text-foreground">Edit</button>
+                  className="text-xs text-muted-foreground hover:text-foreground">{t("common.edit")}</button>
               </div>
               {g.description && <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{g.description}</p>}
               <div className="flex items-center justify-between text-[11px] mb-1">
-                <span className="text-muted-foreground">{linked.filter((t) => t.status === "done").length}/{linked.length} tasks · {fmt.duration(minutes)} focus</span>
+                <span className="text-muted-foreground">{t("goals.progress", { done: linked.filter((task) => task.status === "done").length, total: linked.length, focus: fmt.duration(minutes) })}</span>
                 <span className="tabular-nums font-medium">{pct}%</span>
               </div>
               <div className="h-2 rounded-full bg-muted overflow-hidden">
@@ -74,7 +76,7 @@ function GoalsPage() {
             </div>
           );
         })}
-        {goals.length === 0 && <div className="col-span-full text-center py-16 text-sm text-muted-foreground">No goals yet.</div>}
+        {goals.length === 0 && <div className="col-span-full text-center py-16 text-sm text-muted-foreground">{t("goals.noGoals")}</div>}
       </div>
 
       <GoalDialog open={creating || !!editing}
@@ -91,15 +93,15 @@ function GoalsPage() {
               <DialogHeader><DialogTitle>{open.title}</DialogTitle></DialogHeader>
               {open.description && <p className="text-sm text-muted-foreground">{open.description}</p>}
               <div className="text-xs text-muted-foreground mb-2">
-                {fmt.date(open.startDate)} → {fmt.date(open.endDate)} · {open.durationDays} days
+                {fmt.date(open.startDate)} → {fmt.date(open.endDate)} · {t("goals.days", { count: open.durationDays })}
               </div>
               <div className="h-2 rounded-full bg-muted overflow-hidden mb-4">
                 <div className="h-full bg-gradient-to-r from-primary to-warning" style={{ width: `${goalProgress(open, tasks)}%` }} />
               </div>
-              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Linked tasks</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">{t("goals.linked")}</div>
               <div className="space-y-1">
                 {tasks.filter((t) => t.goalId === open.id).map((t) => (
-                  <TaskRow key={t.id} task={t} onClick={() => setEditTaskId(t.id)} />
+                  <TaskRow key={t.id} task={t} onClick={() => navigate({ to: "/tasks/$taskId", params: { taskId: t.id } })} />
                 ))}
                 {tasks.filter((t) => t.goalId === open.id).length === 0 && (
                   <div className="text-xs text-muted-foreground py-3 text-center">
@@ -112,7 +114,6 @@ function GoalsPage() {
         </DialogContent>
       </Dialog>
 
-      <TaskDialog open={!!editTaskId} onOpenChange={(v) => !v && setEditTaskId(null)} taskId={editTaskId} />
     </PageContainer>
   );
 }
@@ -124,6 +125,7 @@ function GoalDialog({
   onSubmit: (d: { title: string; description?: string; durationDays: number; startDate: number; endDate: number }) => Promise<void>;
   onDelete?: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const goal = useStore((s) => goalId ? s.goals.find((g) => g.id === goalId) : undefined);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -141,36 +143,36 @@ function GoalDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>{goalId ? "Edit Goal" : "New Goal"}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{goalId ? "Edit Goal" : t("goals.new")}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div><Label className="text-xs">Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} autoFocus /></div>
-          <div><Label className="text-xs">Description</Label><Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
+          <div><Label className="text-xs">{t("common.title")}</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} autoFocus /></div>
+          <div><Label className="text-xs">{t("common.description")}</Label><Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label className="text-xs">Duration</Label>
+              <Label className="text-xs">{t("goals.duration")}</Label>
               <Select value={duration} onValueChange={setDuration}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="30">30 days</SelectItem>
-                  <SelectItem value="60">60 days</SelectItem>
-                  <SelectItem value="90">90 days</SelectItem>
+                  <SelectItem value="30">{t("goals.days", { count: 30 })}</SelectItem>
+                  <SelectItem value="60">{t("goals.days", { count: 60 })}</SelectItem>
+                  <SelectItem value="90">{t("goals.days", { count: 90 })}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Start date</Label>
+              <Label className="text-xs">{t("goals.start")}</Label>
               <Input type="date" value={start} onChange={(e) => setStart(e.target.value)} />
             </div>
           </div>
         </div>
         <DialogFooter>
-          {onDelete && <Button variant="ghost" className="mr-auto text-destructive" onClick={onDelete}><Trash2 className="h-4 w-4 mr-1" />Delete</Button>}
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          {onDelete && <Button variant="ghost" className="mr-auto text-destructive" onClick={onDelete}><Trash2 className="h-4 w-4 me-1" />{t("common.delete")}</Button>}
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
           <Button onClick={async () => {
             const startTs = new Date(start).getTime();
             const dur = Number(duration) || 30;
             await onSubmit({ title, description, durationDays: dur, startDate: startTs, endDate: addDays(startTs, dur).getTime() });
-          }}>{goalId ? "Save" : "Create"}</Button>
+          }}>{goalId ? t("common.save") : t("common.create")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

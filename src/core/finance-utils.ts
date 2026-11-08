@@ -1,13 +1,15 @@
 import type { Account, Transaction, Category, Budget, SavingsGoal } from "./finance-types";
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameWeek } from "date-fns";
+import { intlLocale } from "./locale";
 
 export const fmtMoney = (n: number, currency = "USD") => {
+  const locale = intlLocale();
   try {
     if (currency === "LBP") {
       // LBP: no decimals, custom suffix to avoid odd Intl renderings
-      return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(Math.round(n))} LBP`;
+      return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(Math.round(n))} LBP`;
     }
-    return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 2 }).format(n);
+    return new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 2 }).format(n);
   } catch {
     return `${currency} ${n.toFixed(2)}`;
   }

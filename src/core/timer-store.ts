@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getConfig, setConfig } from "./db";
 
 export type PomodoroMode = "focus" | "break";
 
@@ -24,33 +25,34 @@ interface PomodoroState {
   hardReset: (focusMin: number) => void;
 }
 
-const KEY = "pomodoro-state-v1";
-const load = (): Partial<PomodoroState> | null => {
-  if (typeof window === "undefined") return null;
-  try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch { return null; }
-};
+const POMO_KEY = "pomodoro-state";
+const POMO_LEGACY_KEY = "pomodoro-state-v1";
+let timersReady = false;
+
+function snapshotPomodoro(s: PomodoroState) {
+  return {
+    mode: s.mode, running: s.running, endsAt: s.endsAt, remaining: s.remaining,
+    totalSeconds: s.totalSeconds, taskId: s.taskId, projectId: s.projectId,
+    completedRounds: s.completedRounds, startedAt: s.startedAt,
+  };
+}
+
 const persist = (s: PomodoroState) => {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(KEY, JSON.stringify({
-      mode: s.mode, running: s.running, endsAt: s.endsAt, remaining: s.remaining,
-      totalSeconds: s.totalSeconds, taskId: s.taskId, projectId: s.projectId, completedRounds: s.completedRounds, startedAt: s.startedAt,
-    }));
-  } catch { /* ignore */ }
+  if (!timersReady) return;
+  void setConfig(POMO_KEY, JSON.stringify(snapshotPomodoro(s))).catch(() => { /* ignore */ });
 };
 
 export const usePomodoro = create<PomodoroState>((set, get) => {
-  const saved = load();
   return {
-    mode: (saved?.mode as PomodoroMode) ?? "focus",
-    running: saved?.running ?? false,
-    endsAt: saved?.endsAt ?? null,
-    remaining: saved?.remaining ?? 25 * 60,
-    totalSeconds: saved?.totalSeconds ?? 25 * 60,
-    taskId: saved?.taskId,
-    projectId: saved?.projectId,
-    completedRounds: saved?.completedRounds ?? 0,
-    startedAt: saved?.startedAt ?? null,
+    mode: "focus",
+    running: false,
+    endsAt: null,
+    remaining: 25 * 60,
+    totalSeconds: 25 * 60,
+    taskId: undefined,
+    projectId: undefined,
+    completedRounds: 0,
+    startedAt: null,
 
     init: (focusMin) => {
       const s = get();
@@ -136,29 +138,29 @@ interface StopwatchState {
   getElapsedMs: () => number;
 }
 
-const SW_KEY = "stopwatch-state-v1";
-const swLoad = (): Partial<StopwatchState> | null => {
-  if (typeof window === "undefined") return null;
-  try { return JSON.parse(localStorage.getItem(SW_KEY) || "null"); } catch { return null; }
-};
+const SW_KEY = "stopwatch-state";
+const SW_LEGACY_KEY = "stopwatch-state-v1";
+
+function snapshotStopwatch(s: StopwatchState) {
+  return {
+    running: s.running, startedAt: s.startedAt, accumulatedMs: s.accumulatedMs,
+    taskId: s.taskId, projectId: s.projectId, label: s.label,
+  };
+}
+
 const swPersist = (s: StopwatchState) => {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(SW_KEY, JSON.stringify({
-      running: s.running, startedAt: s.startedAt, accumulatedMs: s.accumulatedMs, taskId: s.taskId, projectId: s.projectId, label: s.label,
-    }));
-  } catch { /* ignore */ }
+  if (!timersReady) return;
+  void setConfig(SW_KEY, JSON.stringify(snapshotStopwatch(s))).catch(() => { /* ignore */ });
 };
 
 export const useStopwatch = create<StopwatchState>((set, get) => {
-  const saved = swLoad();
   return {
-    running: saved?.running ?? false,
-    startedAt: saved?.startedAt ?? null,
-    accumulatedMs: saved?.accumulatedMs ?? 0,
-    taskId: saved?.taskId,
-    projectId: saved?.projectId,
-    label: saved?.label,
+    running: false,
+    startedAt: null,
+    accumulatedMs: 0,
+    taskId: undefined,
+    projectId: undefined,
+    label: undefined,
 
     start: () => {
       const s = get();
@@ -196,4 +198,58 @@ export const useStopwatch = create<StopwatchState>((set, get) => {
       return s.accumulatedMs + liveAdd;
     },
   };
-}); 
+});
+
+async function loadTimer(key: string, legacyKey: string): Promise<string | null> {
+  const saved = await getConfig(key);
+  if (saved) return saved;
+  let legacy: string | null = null;
+  try { legacy = localStorage.getItem(legacyKey); } catch { legacy = null; }
+  if (!legacy) return null;
+  await setConfig(key, legacy);
+  try { localStorage.removeItem(legacyKey); } catch { /* ignore */ }
+  return legacy;
+}
+
+function parseTimer(raw: string | null): Record<string, unknown> | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function hydrateTimers() {
+  const [pomoRaw, swRaw] = await Promise.all([
+    loadTimer(POMO_KEY, POMO_LEGACY_KEY),
+    loadTimer(SW_KEY, SW_LEGACY_KEY),
+  ]);
+  const pomo = parseTimer(pomoRaw);
+  const sw = parseTimer(swRaw);
+  if (pomo) {
+    usePomodoro.setState({
+      mode: pomo.mode === "break" ? "break" : "focus",
+      running: Boolean(pomo.running),
+      endsAt: typeof pomo.endsAt === "number" ? pomo.endsAt : null,
+      remaining: typeof pomo.remaining === "number" ? pomo.remaining : 25 * 60,
+      totalSeconds: typeof pomo.totalSeconds === "number" ? pomo.totalSeconds : 25 * 60,
+      taskId: typeof pomo.taskId === "string" ? pomo.taskId : undefined,
+      projectId: typeof pomo.projectId === "string" ? pomo.projectId : undefined,
+      completedRounds: typeof pomo.completedRounds === "number" ? pomo.completedRounds : 0,
+      startedAt: typeof pomo.startedAt === "number" ? pomo.startedAt : null,
+    });
+  }
+  if (sw) {
+    useStopwatch.setState({
+      running: Boolean(sw.running),
+      startedAt: typeof sw.startedAt === "number" ? sw.startedAt : null,
+      accumulatedMs: typeof sw.accumulatedMs === "number" ? sw.accumulatedMs : 0,
+      taskId: typeof sw.taskId === "string" ? sw.taskId : undefined,
+      projectId: typeof sw.projectId === "string" ? sw.projectId : undefined,
+      label: typeof sw.label === "string" ? sw.label : undefined,
+    });
+  }
+  timersReady = true;
+} 

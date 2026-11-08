@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { TaskStatus, Priority } from "@/core/types";
 
@@ -16,29 +17,27 @@ const PRIORITY_STYLES: Record<Priority, string> = {
   urgent: "bg-priority-urgent/15 text-priority-urgent border-priority-urgent/30",
 };
 
-const STATUS_LABELS: Record<TaskStatus, string> = {
-  backlog: "Backlog", todo: "To Do", in_progress: "In Progress", blocked: "Blocked", done: "Done",
-};
-
 export function StatusBadge({ status, className }: { status: TaskStatus; className?: string }) {
+  const { t } = useTranslation();
   return (
     <span className={cn(
       "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium",
       STATUS_STYLES[status], className,
     )}>
       <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      {STATUS_LABELS[status]}
+      {t(`status.${status}`)}
     </span>
   );
 }
 
 export function PriorityBadge({ priority, className }: { priority: Priority; className?: string }) {
+  const { t } = useTranslation();
   return (
     <span className={cn(
       "inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide",
       PRIORITY_STYLES[priority], className,
     )}>
-      {priority}
+      {t(`priority.${priority}`)}
     </span>
   );
 }

@@ -1,7 +1,9 @@
 import { createRouter } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { routeTree } from "./routeTree.gen";
 
 function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
@@ -10,14 +12,14 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Something went wrong</h1>
-        <p className="mt-2 text-sm text-muted-foreground">An unexpected error occurred. Please try again.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("more.wentWrong")}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t("more.unexpected")}</p>
         {import.meta.env.DEV && error.message && (
-          <pre className="mt-4 max-h-40 overflow-auto rounded-md bg-muted p-3 text-left font-mono text-xs text-destructive">{error.message}</pre>
+          <pre className="mt-4 max-h-40 overflow-auto rounded-md bg-muted p-3 text-start font-mono text-xs text-destructive">{error.message}</pre>
         )}
         <div className="mt-6 flex items-center justify-center gap-3">
-          <button onClick={() => reset()} className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">Try again</button>
-          <a href="/" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent">Go home</a>
+          <button onClick={() => reset()} className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">{t("more.tryAgain")}</button>
+          <a href="/" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent">{t("notFound.home")}</a>
         </div>
       </div>
     </div>

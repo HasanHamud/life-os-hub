@@ -1,11 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useStore } from "@/core/store";
 import { useLearnStore } from "@/core/learn-store";
 import { PageContainer, PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { TaskDialog } from "@/components/tasks/TaskDialog";
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, addMonths, addDays,
   format, isToday, isSameMonth, isSameDay,
@@ -14,12 +13,15 @@ import { ChevronLeft, ChevronRight, Pencil, CalendarOff, Trash2 } from "lucide-r
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { Task } from "@/core/types";
+import { fmt, formatWhen } from "@/core/utils";
+import { useTranslation } from "react-i18next";
+import i18n from "@/core/i18n";
 
 export const Route = createFileRoute("/calendar")({
   head: () => ({
     meta: [
-      { title: "Calendar — Life OS" },
-      { name: "description", content: "Month, week and day views with task deadlines and time blocks." },
+      { title: i18n.t("meta.calendar") },
+      { name: "description", content: "Month, week and day views with task deadlines." },
     ],
   }),
   component: CalendarPage,
@@ -28,13 +30,14 @@ export const Route = createFileRoute("/calendar")({
 type View = "month" | "week" | "day";
 
 function CalendarPage() {
-  const { tasks, timeBlocks, upsertTask, deleteTask } = useStore();
+  const { t } = useTranslation();
+  const { tasks, upsertTask, deleteTask } = useStore();
   const rotation = useLearnStore((s) => s.rotation);
   const learningSessions = useLearnStore((s) => s.sessions);
   const [view, setView] = useState<View>("month");
   const [anchor, setAnchor] = useState(new Date());
   const [dragId, setDragId] = useState<string | null>(null);
-  const [editId, setEditId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const rotationByDay = useMemo(() => {
     const map = new Map<number, { icon: string; subject: string }>();
@@ -62,36 +65,36 @@ function CalendarPage() {
 
   const dropOn = async (day: Date) => {
     if (!dragId) return;
-    const t = tasks.find((x) => x.id === dragId);
-    if (!t) return;
-    const target = t.deadline ? new Date(t.deadline) : new Date();
+    const task = tasks.find((x) => x.id === dragId);
+    if (!task) return;
+    const target = task.deadline ? new Date(task.deadline) : new Date();
     target.setFullYear(day.getFullYear(), day.getMonth(), day.getDate());
-    await upsertTask({ ...t, deadline: target.getTime() });
-    toast.success(`Scheduled "${t.title}" on ${format(target, "MMM d")}`);
+    await upsertTask({ ...task, deadline: target.getTime() });
+    toast.success(t("calendar.scheduled", { title: task.title, date: formatWhen(target, "MMM d") }));
     setDragId(null);
   };
 
-  const unschedule = async (t: Task) => {
-    const { deadline: _deadline, ...rest } = t;
+  const unschedule = async (task: Task) => {
+    const { deadline: _deadline, ...rest } = task;
     void _deadline;
     await upsertTask({ ...rest, deadline: undefined });
-    toast.success(`Removed "${t.title}" from calendar`);
+    toast.success(t("calendar.removed", { title: task.title }));
   };
 
-  const removeTask = async (t: Task) => {
-    await deleteTask(t.id);
-    toast.success(`Deleted "${t.title}"`);
+  const removeTask = async (task: Task) => {
+    await deleteTask(task.id);
+    toast.success(t("calendar.deleted", { title: task.title }));
   };
 
   return (
     <PageContainer className="max-w-none">
       <PageHeader
-        title="Calendar"
+        title={t("nav.calendar")}
         description="Drag tasks onto days to schedule them. Click a task pill to edit or remove it."
         actions={
           <div className="flex items-center gap-2">
             <Button size="sm" variant="ghost" onClick={goPrev}><ChevronLeft className="h-4 w-4" /></Button>
-            <Button size="sm" variant="outline" onClick={() => setAnchor(new Date())}>Today</Button>
+            <Button size="sm" variant="outline" onClick={() => setAnchor(new Date())}>{t("common.today")}</Button>
             <Button size="sm" variant="ghost" onClick={goNext}><ChevronRight className="h-4 w-4" /></Button>
             <div className="border rounded-md p-0.5 flex">
               {(["month", "week", "day"] as View[]).map((v) => (
@@ -107,18 +110,17 @@ function CalendarPage() {
 
       <div className="grid lg:grid-cols-[1fr_280px] gap-4">
         <div className="rounded-xl border bg-card p-3">
-          <div className="text-sm font-display font-semibold mb-3">{format(anchor, "MMMM yyyy")}</div>
+          <div className="text-sm font-display font-semibold mb-3">{formatWhen(anchor, "MMMM yyyy")}</div>
           {view === "month" ? (
             <>
               <div className="grid grid-cols-7 mb-1">
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-                  <div key={d} className="text-[10px] uppercase tracking-wide text-muted-foreground py-1 px-2">{d}</div>
+                {Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(anchor), i)).map((d) => (
+                  <div key={d.getDay()} className="text-[10px] uppercase tracking-wide text-muted-foreground py-1 px-2">{formatWhen(d, "EEE")}</div>
                 ))}
               </div>
               <div className="grid grid-cols-7 gap-1">
                 {range.map((day) => {
                   const dayTasks = tasks.filter((t) => t.deadline && isSameDay(t.deadline, day));
-                  const dayBlocks = timeBlocks.filter((b) => isSameDay(b.startTime, day));
                   return (
                     <div key={day.toISOString()}
                       onDragOver={(e) => e.preventDefault()}
@@ -129,7 +131,7 @@ function CalendarPage() {
                         isToday(day) && "border-primary",
                       )}>
                       <div className={cn("text-[11px] font-medium tabular-nums mb-1", isToday(day) && "text-primary")}>
-                        {format(day, "d")}
+                        {formatWhen(day, "d")}
                       </div>
                       <div className="space-y-0.5">
                         {(() => {
@@ -145,7 +147,7 @@ function CalendarPage() {
                               )}
                               {daySessions.slice(0, 1).map((s) => (
                                 <div key={s.id} className="truncate text-[10px] px-1 py-0.5 rounded bg-success/15 text-success">
-                                  ◷ {s.duration}m {s.subject}
+                                  ◷ {t("time.min", { count: s.duration })} {s.subject}
                                 </div>
                               ))}
                             </>
@@ -156,18 +158,13 @@ function CalendarPage() {
                             key={t.id}
                             task={t}
                             onDragStart={() => setDragId(t.id)}
-                            onEdit={() => setEditId(t.id)}
+                            onEdit={() => navigate({ to: "/tasks/$taskId", params: { taskId: t.id } })}
                             onUnschedule={() => unschedule(t)}
                             onDelete={() => removeTask(t)}
                           />
                         ))}
-                        {dayBlocks.slice(0, 2).map((b) => (
-                          <div key={b.id} className="truncate text-[10px] px-1 py-0.5 rounded bg-info/15 text-info">
-                            ◷ {b.title}
-                          </div>
-                        ))}
-                        {(dayTasks.length + dayBlocks.length) > 5 && (
-                          <div className="text-[10px] text-muted-foreground">+{dayTasks.length + dayBlocks.length - 5} more</div>
+                        {dayTasks.length > 3 && (
+                          <div className="text-[10px] text-muted-foreground">+{dayTasks.length - 3} more</div>
                         )}
                       </div>
                     </div>
@@ -179,15 +176,14 @@ function CalendarPage() {
             <div className={cn("grid gap-2", view === "week" ? "grid-cols-7" : "grid-cols-1")}>
               {range.map((day) => {
                 const dayTasks = tasks.filter((t) => t.deadline && isSameDay(t.deadline, day));
-                const dayBlocks = timeBlocks.filter((b) => isSameDay(b.startTime, day)).sort((a, b) => a.startTime - b.startTime);
                 return (
                   <div key={day.toISOString()}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => dropOn(day)}
                     className={cn("rounded-md border p-3 min-h-[280px]", isToday(day) && "border-primary")}>
                     <div className="text-sm font-medium mb-2">
-                      <div className="text-[10px] text-muted-foreground uppercase">{format(day, "EEE")}</div>
-                      {format(day, "MMM d")}
+                      <div className="text-[10px] text-muted-foreground uppercase">{formatWhen(day, "EEE")}</div>
+                      {formatWhen(day, "MMM d")}
                     </div>
                     <div className="space-y-1">
                       {(() => {
@@ -202,25 +198,19 @@ function CalendarPage() {
                             )}
                             {daySessions.map((s) => (
                               <div key={s.id} className="text-[11px] px-2 py-1 rounded bg-success/10 text-success">
-                                ◷ {s.duration}m {s.subject} — {s.topic}
+                                ◷ {t("time.min", { count: s.duration })} {s.subject} — {s.topic}
                               </div>
                             ))}
                           </>
                         );
                       })()}
-                      {dayBlocks.map((b) => (
-                        <div key={b.id} className="text-[11px] px-2 py-1 rounded bg-info/10 text-info">
-                          <div className="font-mono">{format(b.startTime, "HH:mm")}–{format(b.endTime, "HH:mm")}</div>
-                          <div className="truncate">{b.title}</div>
-                        </div>
-                      ))}
                       {dayTasks.map((t) => (
                         <TaskPill
                           key={t.id}
                           task={t}
                           variant="row"
                           onDragStart={() => setDragId(t.id)}
-                          onEdit={() => setEditId(t.id)}
+                          onEdit={() => navigate({ to: "/tasks/$taskId", params: { taskId: t.id } })}
                           onUnschedule={() => unschedule(t)}
                           onDelete={() => removeTask(t)}
                         />
@@ -234,7 +224,7 @@ function CalendarPage() {
         </div>
 
         <aside className="rounded-xl border bg-card p-3">
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Unscheduled</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{t("calendar.unscheduled")}</div>
           <div className="space-y-1 max-h-[60vh] overflow-y-auto scrollbar-thin">
             {tasks.filter((t) => !t.deadline && t.status !== "done").map((t) => (
               <div key={t.id} draggable onDragStart={() => setDragId(t.id)}
@@ -243,20 +233,15 @@ function CalendarPage() {
               </div>
             ))}
             {tasks.filter((t) => !t.deadline && t.status !== "done").length === 0 && (
-              <div className="text-xs text-muted-foreground py-3 text-center">All caught up.</div>
+              <div className="text-xs text-muted-foreground py-3 text-center">{t("calendar.caughtUp")}</div>
             )}
           </div>
           <div className="mt-3 pt-3 border-t text-[11px] text-muted-foreground">
-            Drag tasks from here onto days. Need to add tasks? <Link to="/tasks" className="text-primary hover:underline">Tasks page →</Link>
+            {t("calendar.hint")} <Link to="/tasks" className="text-primary hover:underline">{t("calendar.tasksPage")}</Link>
           </div>
         </aside>
       </div>
 
-      <TaskDialog
-        open={!!editId}
-        onOpenChange={(v) => { if (!v) setEditId(null); }}
-        taskId={editId}
-      />
     </PageContainer>
   );
 }
@@ -271,6 +256,7 @@ function TaskPill({
   onUnschedule: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -285,26 +271,26 @@ function TaskPill({
               : "text-[11px] px-2 py-1 rounded bg-primary/10 text-foreground hover:bg-primary/20",
           )}
         >
-          {variant === "row" ? "• " : ""}{task.title}
+          {variant === "row" ? "• " : ""}{task.deadline ? `${fmt.time(task.deadline)} ` : ""}{task.title}
         </div>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-1" align="start">
         <div className="px-2 py-1.5 text-xs font-medium truncate border-b mb-1">{task.title}</div>
         <button
           onClick={() => { setOpen(false); onEdit(); }}
-          className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-accent text-left"
+          className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-accent text-start"
         >
-          <Pencil className="h-3.5 w-3.5" /> Edit task
+          <Pencil className="h-3.5 w-3.5" /> {t("tasks.edit")}
         </button>
         <button
           onClick={() => { setOpen(false); onUnschedule(); }}
-          className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-accent text-left"
+          className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-accent text-start"
         >
           <CalendarOff className="h-3.5 w-3.5" /> Remove from calendar
         </button>
         <button
           onClick={() => { setOpen(false); onDelete(); }}
-          className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-destructive/10 text-destructive text-left"
+          className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-destructive/10 text-destructive text-start"
         >
           <Trash2 className="h-3.5 w-3.5" /> Delete task
         </button>

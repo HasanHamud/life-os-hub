@@ -7,24 +7,28 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
   LineChart, Line, PieChart, Pie, Cell,
 } from "recharts";
-import { fmt } from "@/core/utils";
+import { fmt, formatWhen } from "@/core/utils";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Plus, Minus, Trash2, Pencil } from "lucide-react";
 import { ChartCard } from "@/components/common/ChartCard";
+import { useTranslation } from "react-i18next";
+import i18n from "@/core/i18n";
 
 export const Route = createFileRoute("/analytics")({
   head: () => ({ meta: [
-    { title: "Analytics — Life OS" },
-    { name: "description", content: "Productivity trends, focus time, planned vs actual, and consistency." },
+    { title: i18n.t("meta.analytics") },
+    { name: "description", content: "Productivity trends, focus time, and consistency." },
   ]}),
   component: AnalyticsPage,
 });
 
 function AnalyticsPage() {
-  const { tasks, sessions, timeBlocks, tags } = useStore();
+  const { t } = useTranslation();
+  const { tasks, sessions, tags } = useStore();
 
   const last30 = useMemo(() => eachDayOfInterval({ start: subDays(new Date(), 29), end: new Date() }), []);
 
@@ -32,11 +36,11 @@ function AnalyticsPage() {
     const total = sessions
       .filter((s) => s.type === "focus" && isSameDay(s.startTime, d))
       .reduce((a, s) => a + s.duration / 60, 0);
-    return { date: format(d, "MMM d"), minutes: Math.round(total) };
+    return { date: formatWhen(d, "MMM d"), minutes: Math.round(total) };
   });
 
   const completedPerDay = last30.map((d) => ({
-    date: format(d, "MMM d"),
+    date: formatWhen(d, "MMM d"),
     count: tasks.filter((t) => t.completedAt && isSameDay(t.completedAt, d)).length,
   }));
 
@@ -47,16 +51,6 @@ function AnalyticsPage() {
       .reduce((a, s) => a + s.duration / 60, 0);
     return { name: tag.name, value: Math.round(minutes), color: tag.color };
   }).filter((x) => x.value > 0);
-
-  const plannedVsActual = last30.slice(-14).map((d) => {
-    const planned = timeBlocks
-      .filter((b) => isSameDay(b.startTime, d))
-      .reduce((a, b) => a + (b.endTime - b.startTime) / 60_000, 0);
-    const actual = sessions
-      .filter((s) => isSameDay(s.startTime, d) && s.type === "focus")
-      .reduce((a, s) => a + s.duration / 60, 0);
-    return { date: format(d, "EEE d"), planned: Math.round(planned), actual: Math.round(actual) };
-  });
 
   // Metrics
   const last7Focus = focusPerDay.slice(-7).reduce((a, x) => a + x.minutes, 0);
@@ -69,12 +63,12 @@ function AnalyticsPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Analytics" description="Productivity trends, focus, and planned vs actual." />
+      <PageHeader title={t("analytics.title")} description="Productivity trends and focus." />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Stat label="Focus score" value={`${focusScore}`} suffix="/100" hint="Last 7 days vs 1h/day target" />
         <Stat label="Consistency" value={`${consistencyScore}%`} hint="Active days, last 14" />
-        <Stat label="Focus this week" value={fmt.duration(last7Focus)} hint="Total minutes" />
+        <Stat label={t("analytics.focusWeek")} value={fmt.duration(last7Focus)} hint={t("analytics.totalMinutes")} />
         <Stat label="Tasks completed" value={String(totalDone)} hint="All time" />
       </div>
 
@@ -82,11 +76,11 @@ function AnalyticsPage() {
         <ChartCard title="Focus minutes — last 30 days">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={focusPerDay}>
-              <CartesianGrid stroke="oklch(0.26 0.014 65)" strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="date" tick={{ fill: "oklch(0.64 0.018 75)", fontSize: 10 }} interval={4} />
-              <YAxis tick={{ fill: "oklch(0.64 0.018 75)", fontSize: 10 }} />
-              <Tooltip contentStyle={{ background: "oklch(0.22 0.014 64)", border: "1px solid oklch(0.30 0.022 70)", borderRadius: 8, fontSize: 12 }} />
-              <Bar dataKey="minutes" fill="oklch(0.78 0.13 70)" radius={[4, 4, 0, 0]} />
+              <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="date" tick={{ fill: "var(--chart-text)", fontSize: 10 }} interval={4} />
+              <YAxis tick={{ fill: "var(--chart-text)", fontSize: 10 }} />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Bar dataKey="minutes" fill="var(--chart-primary)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -94,37 +88,24 @@ function AnalyticsPage() {
         <ChartCard title="Tasks completed">
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={completedPerDay}>
-              <CartesianGrid stroke="oklch(0.26 0.014 65)" strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="date" tick={{ fill: "oklch(0.64 0.018 75)", fontSize: 10 }} interval={4} />
-              <YAxis tick={{ fill: "oklch(0.64 0.018 75)", fontSize: 10 }} />
-              <Tooltip contentStyle={{ background: "oklch(0.22 0.014 64)", border: "1px solid oklch(0.30 0.022 70)", borderRadius: 8, fontSize: 12 }} />
-              <Line type="monotone" dataKey="count" stroke="oklch(0.70 0.13 145)" strokeWidth={2} dot={false} />
+              <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="date" tick={{ fill: "var(--chart-text)", fontSize: 10 }} interval={4} />
+              <YAxis tick={{ fill: "var(--chart-text)", fontSize: 10 }} />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Line type="monotone" dataKey="count" stroke="var(--chart-success)" strokeWidth={2} dot={false} />
             </LineChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard title="Planned vs actual — last 14 days">
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={plannedVsActual}>
-              <CartesianGrid stroke="oklch(0.26 0.014 65)" strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="date" tick={{ fill: "oklch(0.64 0.018 75)", fontSize: 10 }} />
-              <YAxis tick={{ fill: "oklch(0.64 0.018 75)", fontSize: 10 }} />
-              <Tooltip contentStyle={{ background: "oklch(0.22 0.014 64)", border: "1px solid oklch(0.30 0.022 70)", borderRadius: 8, fontSize: 12 }} />
-              <Bar dataKey="planned" fill="oklch(0.70 0.10 230)" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="actual" fill="oklch(0.78 0.13 70)" radius={[4, 4, 0, 0]} />
-            </BarChart>
           </ResponsiveContainer>
         </ChartCard>
 
         <ChartCard title="Time by tag">
           {tagBreakdown.length === 0
-            ? <div className="h-[220px] grid place-items-center text-xs text-muted-foreground">No tagged sessions yet.</div>
+            ? <div className="h-[220px] grid place-items-center text-xs text-muted-foreground">{t("analytics.byTagEmpty")}</div>
             : <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
                   <Pie data={tagBreakdown} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={2}>
                     {tagBreakdown.map((d) => <Cell key={d.name} fill={d.color} />)}
                   </Pie>
-                  <Tooltip contentStyle={{ background: "oklch(0.22 0.014 64)", border: "1px solid oklch(0.30 0.022 70)", borderRadius: 8, fontSize: 12 }}
+                  <Tooltip contentStyle={tooltipStyle}
                     formatter={(v: any) => `${fmt.duration(Number(v) || 0)}`} />
                 </PieChart>
               </ResponsiveContainer>}
@@ -145,6 +126,7 @@ function AnalyticsPage() {
 }
 
 function ProjectFocusAnalysis() {
+  const { t } = useTranslation();
   const { projects, tasks, sessions } = useStore();
   const [range, setRange] = useState<7 | 30 | 90 | 0>(30);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -184,7 +166,7 @@ function ProjectFocusAnalysis() {
         return {
           id: p.id,
           name: p.name,
-          color: p.color || "oklch(0.78 0.13 70)",
+          color: p.color || "var(--chart-primary)",
           category: p.category || "—",
           minutes,
           totalTasks: projTasks.length,
@@ -210,22 +192,21 @@ function ProjectFocusAnalysis() {
     <div className="rounded-xl border bg-card p-4 mt-6">
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
         <div>
-          <div className="text-sm font-semibold">Project focus analysis</div>
+          <div className="text-sm font-semibold">{t("analytics.projectFocus")}</div>
           <div className="text-[11px] text-muted-foreground">
-            Time and tasks per project. Total tracked: <span className="text-foreground font-medium">{fmt.duration(stats.totalMinutes)}</span>
-            {stats.uncategorizedMinutes > 0 && <> · No project: {fmt.duration(stats.uncategorizedMinutes)}</>}
+            {t("analytics.tracked")} <span className="text-foreground font-medium">{fmt.duration(stats.totalMinutes)}</span>
+            {stats.uncategorizedMinutes > 0 && <> · {t("analytics.noProject", { time: fmt.duration(stats.uncategorizedMinutes) })}</>}
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
           {categories.length > 0 && (
-            <select
-              className="h-8 rounded-md border bg-background px-2 text-xs"
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-            >
-              <option value="all">All categories</option>
-              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("analytics.allCategories")}</SelectItem>
+                {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
           )}
           {([7, 30, 90, 0] as const).map((r) => (
             <Button
@@ -249,11 +230,11 @@ function ProjectFocusAnalysis() {
         <div className="grid lg:grid-cols-2 gap-4">
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 16 }}>
-              <CartesianGrid stroke="oklch(0.26 0.014 65)" strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" tick={{ fill: "oklch(0.64 0.018 75)", fontSize: 10 }} />
-              <YAxis type="category" dataKey="name" tick={{ fill: "oklch(0.64 0.018 75)", fontSize: 10 }} width={100} />
+              <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" tick={{ fill: "var(--chart-text)", fontSize: 10 }} />
+              <YAxis type="category" dataKey="name" tick={{ fill: "var(--chart-text)", fontSize: 10 }} width={100} />
               <Tooltip
-                contentStyle={{ background: "oklch(0.22 0.014 64)", border: "1px solid oklch(0.30 0.022 70)", borderRadius: 8, fontSize: 12 }}
+                contentStyle={tooltipStyle}
                 formatter={(v: any) => fmt.duration(Number(v) || 0)}
               />
               <Bar dataKey="minutes" radius={[0, 4, 4, 0]}>
@@ -268,7 +249,7 @@ function ProjectFocusAnalysis() {
                 {chartData.map((d) => <Cell key={d.id} fill={d.color} />)}
               </Pie>
               <Tooltip
-                contentStyle={{ background: "oklch(0.22 0.014 64)", border: "1px solid oklch(0.30 0.022 70)", borderRadius: 8, fontSize: 12 }}
+                contentStyle={tooltipStyle}
                 formatter={(v: any) => fmt.duration(Number(v) || 0)}
               />
             </PieChart>
@@ -280,14 +261,14 @@ function ProjectFocusAnalysis() {
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wide text-muted-foreground border-b">
-                <th className="py-2 pr-3">Project</th>
-                <th className="py-2 pr-3">Category</th>
-                <th className="py-2 pr-3 text-right">Focus</th>
-                <th className="py-2 pr-3 text-right">Sessions</th>
-                <th className="py-2 pr-3 text-right">Tasks done</th>
-                <th className="py-2 pr-3 text-right">Open / Total</th>
-                <th className="py-2 text-right">Share</th>
+              <tr className="text-start text-[11px] uppercase tracking-wide text-muted-foreground border-b">
+                <th className="py-2 pe-3">{t("analytics.project")}</th>
+                <th className="py-2 pe-3">{t("analytics.category")}</th>
+                <th className="py-2 pe-3 text-end">{t("analytics.focus")}</th>
+                <th className="py-2 pe-3 text-end">{t("analytics.sessions")}</th>
+                <th className="py-2 pe-3 text-end">{t("analytics.tasksDone")}</th>
+                <th className="py-2 pe-3 text-end">{t("analytics.openTotal")}</th>
+                <th className="py-2 text-end">{t("analytics.share")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
@@ -295,18 +276,18 @@ function ProjectFocusAnalysis() {
                 const share = stats.totalMinutes > 0 ? Math.round((r.minutes / stats.totalMinutes) * 100) : 0;
                 return (
                   <tr key={r.id}>
-                    <td className="py-2 pr-3">
+                    <td className="py-2 pe-3">
                       <span className="inline-flex items-center gap-2">
                         <span className="h-2.5 w-2.5 rounded-full" style={{ background: r.color }} />
                         {r.name}
                       </span>
                     </td>
-                    <td className="py-2 pr-3 text-muted-foreground">{r.category}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums font-medium">{fmt.duration(r.minutes)}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums">{r.sessions}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums">{r.completed}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums text-muted-foreground">{r.openTasks} / {r.totalTasks}</td>
-                    <td className="py-2 text-right tabular-nums text-muted-foreground">{share}%</td>
+                    <td className="py-2 pe-3 text-muted-foreground">{r.category}</td>
+                    <td className="py-2 pe-3 text-end tabular-nums font-medium">{fmt.duration(r.minutes)}</td>
+                    <td className="py-2 pe-3 text-end tabular-nums">{r.sessions}</td>
+                    <td className="py-2 pe-3 text-end tabular-nums">{r.completed}</td>
+                    <td className="py-2 pe-3 text-end tabular-nums text-muted-foreground">{r.openTasks} / {r.totalTasks}</td>
+                    <td className="py-2 text-end tabular-nums text-muted-foreground">{share}%</td>
                   </tr>
                 );
               })}
@@ -319,6 +300,7 @@ function ProjectFocusAnalysis() {
 }
 
 function FocusAdjuster() {
+  const { t } = useTranslation();
   const { sessions, adjustDayFocus, setDayFocus, deleteSession, updateSession } = useStore();
   const [date, setDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [delta, setDelta] = useState<string>("15");
@@ -340,7 +322,9 @@ function FocusAdjuster() {
     const n = Number(delta);
     if (!n || isNaN(n)) return;
     await adjustDayFocus(day, sign * Math.abs(n));
-    toast.success(`${sign > 0 ? "Added" : "Removed"} ${Math.abs(n)}m on ${format(day, "MMM d")}`);
+    const count = Math.abs(n);
+    const dateLabel = formatWhen(day, "MMM d");
+    toast.success(sign > 0 ? t("analytics.added", { count, date: dateLabel }) : t("analytics.removed", { count, date: dateLabel }));
   };
 
   const setTotal = async () => {
@@ -348,7 +332,7 @@ function FocusAdjuster() {
     if (isNaN(n) || n < 0) { toast.error("Enter a non-negative number"); return; }
     await setDayFocus(day, n);
     setTarget("");
-    toast.success(`Set ${format(day, "MMM d")} focus to ${fmt.duration(n)}`);
+    toast.success(t("analytics.setFocus", { date: formatWhen(day, "MMM d"), time: fmt.duration(n) }));
   };
 
   const editEntry = async (id: string, currentMin: number) => {
@@ -360,46 +344,46 @@ function FocusAdjuster() {
     const ses = sessions.find((s) => s.id === id);
     if (!ses) return;
     await updateSession(id, { duration: seconds, endTime: ses.startTime + seconds * 1000 });
-    toast.success("Updated");
+    toast.success(t("analytics.updated"));
   };
 
   return (
     <div className="rounded-xl border bg-card p-4 mt-6">
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
         <div>
-          <div className="text-sm font-semibold">Adjust focus time for a day</div>
-          <div className="text-[11px] text-muted-foreground">Add, subtract, or override the total minutes tracked on any day.</div>
+          <div className="text-sm font-semibold">{t("analytics.adjust")}</div>
+          <div className="text-[11px] text-muted-foreground">{t("analytics.adjustHelp")}</div>
         </div>
         <div className="text-xs text-muted-foreground">
-          Current total: <span className="font-medium tabular-nums text-foreground">{fmt.duration(totalMin)}</span>
+          {t("analytics.current")} <span className="font-medium tabular-nums text-foreground">{fmt.duration(totalMin)}</span>
         </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-3">
         <div className="space-y-1.5">
-          <Label className="text-xs">Date</Label>
+          <Label className="text-xs">{t("common.date")}</Label>
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs">Adjust by (minutes)</Label>
+          <Label className="text-xs">{t("analytics.adjustBy")}</Label>
           <div className="flex gap-2">
             <Input type="number" min={1} value={delta} onChange={(e) => setDelta(e.target.value)} />
             <Button variant="outline" size="icon" onClick={() => apply(-1)} title="Subtract">
               <Minus className="h-4 w-4" />
             </Button>
-            <Button size="icon" onClick={() => apply(1)} title="Add">
+            <Button size="icon" onClick={() => apply(1)} title={t("common.add")}>
               <Plus className="h-4 w-4" />
             </Button>
           </div>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs">Or set total to (minutes)</Label>
+          <Label className="text-xs">{t("analytics.orSet")}</Label>
           <div className="flex gap-2">
             <Input
               type="number" min={0} placeholder={String(totalMin)}
               value={target} onChange={(e) => setTarget(e.target.value)}
             />
-            <Button variant="outline" onClick={setTotal}>Set</Button>
+            <Button variant="outline" onClick={setTotal}>{t("analytics.set")}</Button>
           </div>
         </div>
       </div>
@@ -407,7 +391,7 @@ function FocusAdjuster() {
       {daySessions.length > 0 && (
         <div className="mt-4">
           <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-            Sessions on {format(day, "EEE, MMM d")}
+            Sessions on {formatWhen(day, "EEE, MMM d")}
           </div>
           <div className="divide-y divide-border/50 rounded-md border">
             {daySessions.map((s) => {
@@ -419,18 +403,18 @@ function FocusAdjuster() {
                     {format(s.startTime, "HH:mm")}
                   </span>
                   <span className="flex-1 truncate">
-                    {isAdj ? <span className="text-muted-foreground italic">Manual adjustment</span> : (s.notes || "Focus session")}
+                    {isAdj ? <span className="text-muted-foreground italic">{t("analytics.manual")}</span> : (s.notes || t("analytics.focusSession"))}
                   </span>
                   <span className={`tabular-nums font-medium ${mins < 0 ? "text-destructive" : ""}`}>
                     {mins >= 0 ? "+" : ""}{mins}m
                   </span>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => editEntry(s.id, mins)} title="Edit">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => editEntry(s.id, mins)} title={t("common.edit")}>
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
                   <Button
                     variant="ghost" size="icon" className="h-7 w-7 text-destructive"
-                    onClick={async () => { await deleteSession(s.id); toast.success("Removed"); }}
-                    title="Delete"
+                    onClick={async () => { await deleteSession(s.id); toast.success(t("analytics.removedSession")); }}
+                    title={t("common.delete")}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -445,6 +429,7 @@ function FocusAdjuster() {
 }
 
 function Summary({ title, range }: { title: string; range: "today" | "week" | "month" }) {
+  const { t } = useTranslation();
   const { tasks, sessions } = useStore();
   const now = new Date();
   const start = range === "today" ? startOfDay(now).getTime()
@@ -461,7 +446,7 @@ function Summary({ title, range }: { title: string; range: "today" | "week" | "m
     <div className="rounded-xl border bg-card p-4">
       <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">{title}</div>
       <div className="space-y-1.5 text-sm">
-        <Row label="Focus time" value={fmt.duration(focusMin)} />
+        <Row label={t("analytics.focusTime")} value={fmt.duration(focusMin)} />
         <Row label="Tasks completed" value={String(completed)} />
         <Row label="Tasks created" value={String(created)} />
       </div>
@@ -477,6 +462,14 @@ function Row({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+const tooltipStyle = {
+  background: "var(--popover)",
+  border: "1px solid var(--border)",
+  borderRadius: 8,
+  color: "var(--popover-foreground)",
+  fontSize: 12,
+};
 
 function Stat({ label, value, suffix, hint }: { label: string; value: string; suffix?: string; hint?: string }) {
   return (

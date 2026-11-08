@@ -5,6 +5,7 @@ import { usePomodoro, useStopwatch } from "@/core/timer-store";
 import { useStore } from "@/core/store";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 function fmtMS(totalSec: number) {
   const m = Math.floor(Math.max(0, totalSec) / 60);
@@ -22,6 +23,7 @@ function fmtHMS(totalMs: number) {
 }
 
 export function FloatingTimer() {
+  const { t } = useTranslation();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { settings, addSession, tasks } = useStore();
   const pomo = usePomodoro();
@@ -50,9 +52,10 @@ export function FloatingTimer() {
           type: session.mode,
         });
       }
-      toast.success(`${session.mode === "focus" ? "Focus" : "Break"} complete`);
+      const done = session.mode === "focus" ? t("pomodoro.focusComplete") : t("pomodoro.breakComplete");
+      toast.success(done);
       if (settings.notificationsEnabled && "Notification" in window && Notification.permission === "granted") {
-        try { new Notification(`${session.mode === "focus" ? "Focus" : "Break"} complete`); } catch { /* ignore */ }
+        try { new Notification(done); } catch { /* ignore */ }
       }
     }
   });
@@ -94,15 +97,15 @@ export function FloatingTimer() {
           </div>
           <div className="flex items-center gap-1">
             {pomo.running ? (
-              <button onClick={() => pomo.pause()} className="p-1.5 rounded hover:bg-muted" aria-label="Pause">
+              <button onClick={() => pomo.pause()} className="p-1.5 rounded hover:bg-muted" aria-label={t("common.pause")}>
                 <Pause className="h-3.5 w-3.5" />
               </button>
             ) : (
-              <button onClick={() => pomo.start(settings.pomodoroFocus, settings.pomodoroBreak)} className="p-1.5 rounded hover:bg-muted" aria-label="Start">
+              <button onClick={() => pomo.start(settings.pomodoroFocus, settings.pomodoroBreak)} className="p-1.5 rounded hover:bg-muted" aria-label={t("common.start")}>
                 <Play className="h-3.5 w-3.5" />
               </button>
             )}
-            <button onClick={() => pomo.reset(settings.pomodoroFocus, settings.pomodoroBreak)} className="p-1.5 rounded hover:bg-muted" aria-label="Close">
+            <button onClick={() => pomo.reset(settings.pomodoroFocus, settings.pomodoroBreak)} className="p-1.5 rounded hover:bg-muted" aria-label={t("common.close")}>
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -115,7 +118,7 @@ export function FloatingTimer() {
             <Watch className="h-4 w-4" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground leading-none">Stopwatch</div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground leading-none">{t("stopwatch.title")}</div>
             <Link to="/stopwatch" className="block text-lg font-display tabular-nums leading-tight hover:underline">
               {fmtHMS(sw.getElapsedMs())}
             </Link>
@@ -125,15 +128,15 @@ export function FloatingTimer() {
           </div>
           <div className="flex items-center gap-1">
             {sw.running ? (
-              <button onClick={() => sw.pause()} className="p-1.5 rounded hover:bg-muted" aria-label="Pause">
+              <button onClick={() => sw.pause()} className="p-1.5 rounded hover:bg-muted" aria-label={t("common.pause")}>
                 <Pause className="h-3.5 w-3.5" />
               </button>
             ) : (
-              <button onClick={() => sw.start()} className="p-1.5 rounded hover:bg-muted" aria-label="Start">
+              <button onClick={() => sw.start()} className="p-1.5 rounded hover:bg-muted" aria-label={t("common.start")}>
                 <Play className="h-3.5 w-3.5" />
               </button>
             )}
-            <button onClick={() => sw.reset()} className="p-1.5 rounded hover:bg-muted" aria-label="Close">
+            <button onClick={() => sw.reset()} className="p-1.5 rounded hover:bg-muted" aria-label={t("common.close")}>
               <X className="h-3.5 w-3.5" />
             </button>
           </div>

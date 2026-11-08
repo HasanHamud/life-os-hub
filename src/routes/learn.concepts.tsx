@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import i18n from "@/core/i18n";
 import { useLearnStore } from "@/core/learn-store";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -11,7 +13,7 @@ import { Plus, Brain } from "lucide-react";
 export const Route = createFileRoute("/learn/concepts")({
   head: () => ({
     meta: [
-      { title: "Concepts — Life OS" },
+      { title: i18n.t("meta.concepts") },
       { name: "description", content: "Concept library — track understanding and clarity across subjects." },
     ],
   }),
@@ -19,6 +21,7 @@ export const Route = createFileRoute("/learn/concepts")({
 });
 
 function ConceptsPage() {
+  const { t } = useTranslation();
   const { concepts, distinctSubjects, upsertConcept, deleteConcept } = useLearnStore();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -43,11 +46,11 @@ function ConceptsPage() {
   return (
     <div>
       <PageHeader
-        title="Concepts"
+        title={t("learn.concepts")}
         description="Track your understanding. Rate clarity for each concept."
         actions={
           <Button onClick={() => setCreating(true)}>
-            <Plus className="h-4 w-4 mr-1" />New Concept
+            <Plus className="h-4 w-4 me-1" />{t("learn.newConcept")}
           </Button>
         }
       />
@@ -55,17 +58,17 @@ function ConceptsPage() {
       {concepts.length > 0 && (
         <div className="mb-4 flex items-center gap-2 flex-wrap">
           <Select value={filterSubject} onValueChange={setFilterSubject}>
-            <SelectTrigger className="w-40"><SelectValue placeholder="All subjects" /></SelectTrigger>
+            <SelectTrigger className="w-40"><SelectValue placeholder={t("learn.allSubjects")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All subjects</SelectItem>
+              <SelectItem value="all">{t("learn.allSubjects")}</SelectItem>
               {subjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={filterPhase} onValueChange={setFilterPhase}>
-            <SelectTrigger className="w-32"><SelectValue placeholder="All phases" /></SelectTrigger>
+            <SelectTrigger className="w-32"><SelectValue placeholder={t("learn.allPhases")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All phases</SelectItem>
-              {phases.map((p) => <SelectItem key={p} value={String(p)}>Phase {p}</SelectItem>)}
+              <SelectItem value="all">{t("learn.allPhases")}</SelectItem>
+              {phases.map((p) => <SelectItem key={p} value={String(p)}>{t("learn.phases.phase", { n: p })}</SelectItem>)}
             </SelectContent>
           </Select>
           <div className="text-xs text-muted-foreground">
